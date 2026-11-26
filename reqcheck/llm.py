@@ -91,9 +91,60 @@ def _empty(schema: type[T]) -> T:
     return schema.model_validate(data)
 
 
+DEFAULT_STRONG_TAGS = ("set.", "critic", "clarify", "verdict", "answers")
+
+
+class RoutedLLM(LLMClient):
+    """Маршрутизация по стадиям: массовые проверки — быстрой модели, рассуждения — сильной.
+
+    Стадия определяется по префиксу tag. Обе модели работают через один и тот же контракт.
+    """
+
+    def __init__(self, fast: LLMClient, strong: LLMClient, strong_tags=DEFAULT_STRONG_TAGS):
+        super().__init__()
+        self.fast, self.strong, self.strong_tags = fast, strong, tuple(strong_tags)
+        self.provider = fast.provider
+
+    @property
+    def model(self) -> str:  # type: ignore[override]
+        if self.fast.model == self.strong.model:
+            return self.fast.model
+        return f"{self.fast.model} (массовые проверки) + {self.strong.model} ({', '.join(self.strong_tags)})"
+
+    def _pick(self, tag: str) -> LLMClient:
+        return self.strong if tag.startswith(self.strong_tags) else self.fast
+
+    def generate_json(self, system, user, schema, *, tag, temperature=None):
+        client = self._pick(tag)
+        try:
+            return client.generate_json(system, user, schema, tag=tag, temperature=temperature)
+        finally:
+            self._sync()
+
+    def _sync(self) -> None:
+        a, b = self.fast.stats, self.strong.stats
+        self.stats.calls = a.calls + b.calls
+        self.stats.cache_hits = a.cache_hits + b.cache_hits
+        self.stats.tokens_total = a.tokens_total + b.tokens_total
+        self.stats.by_tag = {k: a.by_tag.get(k, 0) + b.by_tag.get(k, 0) for k in {*a.by_tag, *b.by_tag}}
+
+
 def get_client(settings: "Any") -> LLMClient:  # noqa: F821
-    """Фабрика клиента по настройкам. Реализацию даёт reqcheck/providers/__init__.py."""
+    """Фабрика клиента по настройкам. Реализацию даёт reqcheck/providers/__init__.py.
+
+    LLM_STRONG_MODEL (env) включает маршрутизацию: стадии из LLM_STRONG_TAGS идут в сильную модель.
+    """
+    import copy
+    import os
+
     if settings.provider == "fake":
         return FakeLLM()
     from reqcheck.providers import make_client
-    return make_client(settings)
+    fast = make_client(settings)
+    strong_model = os.getenv("LLM_STRONG_MODEL", "").strip()
+    if not strong_model or strong_model == getattr(fast, "model", None):
+        return fast
+    s2 = copy.copy(settings)
+    s2.model = strong_model
+    tags = [t.strip() for t in os.getenv("LLM_STRONG_TAGS", "").split(",") if t.strip()] or DEFAULT_STRONG_TAGS
+    return RoutedLLM(fast, make_client(s2), tags)
