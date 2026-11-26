@@ -1,6 +1,7 @@
 """Оркестратор: прогоняет стадии по очереди и собирает ReportData."""
 from __future__ import annotations
 
+import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 import time
@@ -57,6 +58,8 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
     """Полный прогон агента. ask — функция для уточняющих вопросов (интерактивный режим)."""
     say = progress or (lambda stage, msg: None)
     t0 = time.time()
+    # REQCHECK_SKIP=review,set,critic,clarify — отключить стадии (абляция и отладка)
+    skip = {x.strip() for x in os.getenv("REQCHECK_SKIP", "").split(",") if x.strip()}
     llm = llm or get_client(settings)
 
     say("ingest", f"Читаю {input_path}")
@@ -71,25 +74,34 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
     found = linters.run_linters(doc, reqs)
     say("linters", f"Находок линтеров: {len(found)}")
 
-    say("review", "Проверяю каждое требование (ISO 29148 §5.2.5)")
-    found += review.review_requirements(doc, reqs, llm, known=list(found))
+    if "review" not in skip:
+        say("review", "Проверяю каждое требование (ISO 29148 §5.2.5)")
+        found += review.review_requirements(doc, reqs, llm, known=list(found))
 
-    say("set", "Проверяю набор целиком (§5.2.6, IEEE 830 §4.3, fintech)")
-    set_found, _ = setreview.review_set(doc, reqs, llm, found)
-    found += set_found
+    if "set" not in skip:
+        say("set", "Проверяю набор целиком (§5.2.6, IEEE 830 §4.3, fintech)")
+        set_found, _ = setreview.review_set(doc, reqs, llm, found)
+        found += set_found
     say("set", f"Всего кандидатов в дефекты: {len(found)}")
 
-    say("critic", "Проверяю находки (Critic)")
-    found = critic.verify(doc, reqs, _ground(doc, found), llm)
+    if "critic" not in skip:
+        say("critic", "Проверяю находки (Critic)")
+        found = critic.verify(doc, reqs, _ground(doc, found), llm)
+    else:
+        found = [f for f in _ground(doc, found) if f.grounded]
     found = _number(found)
     say("critic", f"Подтверждено: {len(found)}")
 
     say("set", "Оцениваю набор по критериям §5.2.6 / IEEE 830")
     say("clarify", "Формулирую уточняющие вопросы (параллельно с оценкой набора)")
-    with ThreadPoolExecutor(max_workers=2) as pool:   # обе стадии зависят только от пронумерованных D-NNN
-        fut_summary = pool.submit(setreview.summarize, doc, reqs, found, llm)
-        fut_questions = pool.submit(clarify.make_questions, doc, reqs, found, llm)
-        summary, questions = fut_summary.result(), fut_questions.result()
+    if "clarify" in skip:
+        from reqcheck.models import SetSummary
+        summary, questions = SetSummary(), []
+    else:
+        with ThreadPoolExecutor(max_workers=2) as pool:   # обе стадии зависят только от пронумерованных D-NNN
+            fut_summary = pool.submit(setreview.summarize, doc, reqs, found, llm)
+            fut_questions = pool.submit(clarify.make_questions, doc, reqs, found, llm)
+            summary, questions = fut_summary.result(), fut_questions.result()
     for i, q in enumerate(questions, 1):
         q.qid = q.qid or f"Q-{i:02d}"
     if ask and questions:
@@ -100,7 +112,7 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
             found = _number(clarify.apply_answers(doc, reqs, found, questions, llm))
 
     say("verdict", "Формирую итог")
-    verdict = clarify.decide(reqs, found, summary, llm, questions=questions, doc_name=doc.name)
+    verdict = clarify._fallback(found) if "clarify" in skip else clarify.decide(reqs, found, summary, llm, questions=questions, doc_name=doc.name)
 
     passport = RunPassport(
         doc_name=doc.name, doc_path=Path(input_path).name, doc_sha256=doc.sha256, doc_format=doc.format,
@@ -109,6 +121,7 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
         prompt_version=prompt_version(),
         params={"temperature": settings.temperature, "cache": settings.use_cache,
                 "interactive": bool(ask),
+                **({"skipped_stages": ",".join(sorted(skip))} if skip else {}),
                 **({"models_used": ", ".join(f"{m} ×{n}" for m, n in sorted(llm.stats.models.items()))}
                    if getattr(llm.stats, "models", None) else {}),
                 **({"cache_hits": llm.stats.cache_hits} if llm.stats.cache_hits else {})},
