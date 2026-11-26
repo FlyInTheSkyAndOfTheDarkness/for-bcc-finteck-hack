@@ -56,3 +56,4 @@ task/
 reports/*.jsonl
 !reports/.gitkeep
 eval/results/*.tmp
+reports/_*
