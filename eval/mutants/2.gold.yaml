@@ -1,0 +1,70 @@
+- id: M-01
+  title: Число повторов в КП-6 противоречит ЗП-8
+  section: Часть A › ЗП-8 ↔ Критерии приемки › КП-6
+  quotes:
+  - повторяет передачу до 3 раз с интервалом 30 секунд
+  - 5 повторных попыток с интервалом 30 секунд
+  criterion: set_consistent
+  alt_criteria:
+  - correct
+  - verifiable
+  severity: critical
+  must_find: true
+  description: ЗП-8 допускает до 3 повторов, критерий приёмки КП-6 ожидает 5.
+  mutation: numeric_contradiction
+- id: M-02
+  title: Сохранение настройки через GET
+  section: Часть B › Общие параметры › REST type
+  quotes:
+  - REST type | GET
+  - curl -X GET
+  criterion: correct
+  alt_criteria:
+  - appropriate
+  - set_consistent
+  - conforming
+  severity: critical
+  must_find: true
+  description: Метод изменяет состояние, но объявлен как GET (небезопасно, кэшируется, совпадает с методом
+    чтения).
+  mutation: state_changing_get
+- id: M-03
+  title: Код 200 подписан как Created
+  section: Часть B › Статусы › 200
+  quotes:
+  - 200. Successful — Created
+  criterion: set_consistent
+  alt_criteria:
+  - correct
+  - conforming
+  severity: major
+  must_find: true
+  description: Фраза Created соответствует 201, а не 200.
+  mutation: status_phrase_mismatch
+- id: M-04
+  title: Раздел «Тестирование требований» не заполнен
+  section: Часть A › Требования к тестированию
+  quotes:
+  - заполняются тестировщиками
+  criterion: conforming
+  alt_criteria:
+  - traceable
+  - modifiable
+  - set_complete
+  severity: minor
+  must_find: true
+  description: Раздел шаблона оставлен с заглушкой.
+  mutation: unfilled_template_field
+- id: M-05
+  title: ЗП-7 объединяет два разных требования
+  section: Часть A › Функциональные требования › ЗП-7
+  quotes:
+  - история зачислений за последние 12 месяцев отображается в разделе «Уведомления»
+  criterion: singular
+  alt_criteria:
+  - traceable
+  - verifiable
+  severity: minor
+  must_find: true
+  description: К правилу о выключенном уведомлении присоединено независимое требование об истории зачислений.
+  mutation: two_in_one

@@ -1,0 +1,67 @@
+- id: M-01
+  title: Расплывчатый срок «оперативно» в НФ-1
+  section: Часть A › Нефункциональные требования › НФ-1
+  quotes:
+  - Сервис уведомлений передаёт push провайдеру оперативно после получения события.
+  criterion: unambiguous
+  alt_criteria:
+  - verifiable
+  severity: major
+  must_find: true
+  description: 'Норматив времени заменён неизмеримым словом «оперативно»: нет числа, перцентиля и нагрузки.'
+  mutation: vague_term
+- id: M-02
+  title: КП-5 противоречит ЗП-6 (push по каждому зачислению)
+  section: Часть A › ЗП-6 ↔ Критерии приемки › КП-5
+  quotes:
+  - push отправляется по каждому зачислению
+  - Зачислить две выплаты с КНП 311 подряд | Отправлен один push
+  criterion: set_consistent
+  alt_criteria:
+  - correct
+  - verifiable
+  severity: critical
+  must_find: true
+  description: По ЗП-6 push отправляется по каждому зачислению, а КП-5 при двух зачислениях ожидает один
+    push.
+  mutation: numeric_contradiction
+- id: M-03
+  title: Сумма в событии в тенге, а в журнале — в тиынах
+  section: Часть A › Требования к интеграции ↔ Требования к данным
+  quotes:
+  - '`amount` (number, сумма в тенге)'
+  - сумма зачисления в тиынах (integer)
+  criterion: set_consistent
+  alt_criteria:
+  - unambiguous
+  - correct
+  severity: major
+  must_find: true
+  description: Событие передаёт сумму в тенге дробным числом, а данные хранят целые тиыны; правило пересчёта
+    не задано.
+  mutation: unit_mismatch
+- id: M-04
+  title: Код 400 подписан как Not found
+  section: Часть B › Статусы › 400
+  quotes:
+  - 400. Unsuccessful — Not found
+  criterion: set_consistent
+  alt_criteria:
+  - correct
+  - conforming
+  severity: major
+  must_find: true
+  description: Фраза Not found соответствует 404, а не 400.
+  mutation: status_phrase_mismatch
+- id: M-05
+  title: Не описан исход при ошибке проверки тела запроса
+  section: Часть B › Логика работы метода › п.3
+  quotes:
+  - Проверить тело запроса.
+  criterion: complete
+  alt_criteria:
+  - set_complete
+  severity: major
+  must_find: true
+  description: Логика не говорит, что вернуть при некорректном теле; ветка ошибки отсутствует.
+  mutation: missing_branch
