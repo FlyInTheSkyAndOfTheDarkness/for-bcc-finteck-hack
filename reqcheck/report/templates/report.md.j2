@@ -1,0 +1,243 @@
+{% macro finding(f, level) %}
+{{ level }} <a id="{{ f.fid }}"></a>{{ f.fid }} · {{ f.severity|badge }} · {{ f.criterion|crit }}: {{ f.title|mdtext }}
+
+**Критерий:** {{ f.criterion|crit }} ({{ f.criterion|critref }})
+
+**Цитата:**
+
+{{ f.quote|mdq }}
+
+**Место:** {{ (f.location or "не указано")|mdtext }}
+
+**Почему это дефект:** {{ f.explanation|autolink }}
+
+**Как исправить:** {{ f.recommendation|autolink }}
+{% if f.rids|length > 1 or f.scope == "set" and f.rids %}
+
+**Затронутые требования:** {{ f.rids|refs }}
+{% endif %}
+{% if q_for_f.get(f.fid) %}
+
+**Уточняющие вопросы:** {{ q_for_f[f.fid]|refs }}
+{% endif %}
+
+<sub>уверенность {{ (f.confidence * 100)|round|int }}% · источник: {{ f.source|source }}{% if f.verified %} · подтверждено критиком{% endif %}{% if not f.grounded %} · ⚠️ цитата не найдена в документе дословно{% endif %}</sub>
+
+{% endmacro %}
+# Отчёт о проверке требований: {{ p.doc_name|mdtext }}
+
+> {{ summary_text }}
+
+**Содержание:** [1. Паспорт прогона](#passport) · [2. Нарезка требований](#slicing) · [3. Проверка каждого требования](#requirements) · [4. Проверка набора](#set) · [5. Сводка](#summary) · [6. Уточняющие вопросы](#questions) · [7. Итог](#verdict) · [Приложение: методика](#method)
+
+---
+
+## <a id="passport"></a>1. Паспорт прогона
+
+| Параметр | Значение |
+|---|---|
+| Документ | {{ p.doc_name|cell }} |
+| Файл | `{{ p.doc_path|cell }}` |
+| SHA-256 (начало) | `{{ sha_short }}` |
+| Формат | {{ p.doc_format|cell }} |
+| Дата и время прогона | {{ p.run_at|cell }} |
+| Провайдер / модель | {{ p.provider|cell }} / {{ p.model|cell }} |
+| Версия агента | {{ p.agent_version|cell }} |
+| Версия промптов | {{ p.prompt_version|cell }} |
+| Параметры | {{ p.params|params|cell }} |
+| Вызовов LLM | {{ p.llm_calls }} |
+| Токенов всего | {{ p.tokens_total }} |
+| Длительность | {{ p.duration_s|dur }} |
+
+## <a id="slicing"></a>2. Нарезка требований
+
+Агент выделил **{{ n }}** требований. Если в документе у требования не было номера, агент присвоил свой идентификатор и сохранил цитату.
+
+{% if req_rows %}
+| ID в отчёте | ID в документе | Вид | Краткая формулировка | Цитата | Место |
+|---|---|---|---|---|---|
+{% for x in req_rows %}
+| {{ x.r.rid|ref }} | {{ (x.r.doc_id or "— (присвоен агентом)")|cell }} | {{ x.r.kind|kind }} | {{ x.r.summary|cell }} | {{ x.r.quote|short|cell }} | {{ (x.r.location or "—")|cell }} |
+{% endfor %}
+{% else %}
+_Требования в документе не выделены._
+{% endif %}
+
+## <a id="requirements"></a>3. Проверка каждого требования
+
+Статус: ✅ замечаний нет · ⚠️ есть замечания · ❌ есть критичное замечание.
+
+{% for x in dirty_rows %}
+### <a id="{{ x.r.rid }}"></a>{{ "❌" if x.status == "critical" else "⚠️" }} {{ x.r.rid }}{% if x.r.doc_id %} ({{ x.r.doc_id|mdtext }}){% endif %} — {{ x.r.summary|mdtext }}
+
+**Вид:** {{ x.r.kind|kind }} · **Место:** {{ (x.r.location or "не указано")|mdtext }}{% if not x.r.grounded %} · ⚠️ цитата не найдена в документе дословно{% endif %}
+
+
+{{ x.r.quote|mdq }}
+
+{% for f in x.findings %}
+{{ finding(f, "####")|trim }}
+
+{% endfor %}
+{% if x.also %}
+**Также затронуто замечаниями:** {{ x.also|map(attribute="fid")|list|refs }}
+
+{% endif %}
+{% if x.set_refs %}
+**Замечания к набору, затрагивающие это требование:** {{ x.set_refs|map(attribute="fid")|list|refs }}
+
+{% endif %}
+{% endfor %}
+{% if orphan %}
+### Замечания без привязки к конкретному требованию
+
+{% for f in orphan %}
+{{ finding(f, "####")|trim }}
+
+{% endfor %}
+{% endif %}
+{% if clean_rows %}
+### ✅ Требования без замечаний ({{ clean_rows|length }})
+
+{% for x in clean_rows %}
+- <a id="{{ x.r.rid }}"></a>✅ **{{ x.r.rid }}**{% if x.r.doc_id %} ({{ x.r.doc_id|mdtext }}){% endif %} — {{ x.r.summary|mdtext }}. Цитата: «{{ x.r.quote|short|mdtext }}»
+{% endfor %}
+
+{% endif %}
+## <a id="set"></a>4. Проверка набора требований целиком
+
+{% if set_criteria %}
+| Критерий набора | Оценка |
+|---|---|
+{% for c, a in set_criteria %}
+| {{ c|crit }} ({{ c|critref }}) | {{ a|cell }} |
+{% endfor %}
+
+{% else %}
+_Оценка по критериям набора не получена._
+
+{% endif %}
+{% if set_findings %}
+### Замечания к набору
+
+{% for f in set_findings %}
+{{ finding(f, "####")|trim }}
+
+{% endfor %}
+{% else %}
+Замечаний уровня набора нет.
+
+{% endif %}
+{% if d.set_summary.notes %}
+### Заметки по набору
+
+{% for note in d.set_summary.notes %}
+- {{ note|autolink }}
+{% endfor %}
+
+{% endif %}
+## <a id="summary"></a>5. Сводка
+
+- Требований проверено: **{{ n }}**
+- Замечаний всего: **{{ n_findings }}** — 🔴 критичных {{ sev_count["critical"] }}, 🟠 существенных {{ sev_count["major"] }}, 🟡 незначительных {{ sev_count["minor"] }}
+- Требований с замечаниями: **{{ affected }} из {{ n }}** ({{ share }}%)
+- Уточняющих вопросов: {{ n_questions }} (с ответом: {{ n_answered }})
+
+{% if crit_rows %}
+### Замечания по критериям
+
+| Критерий | Всего | 🔴 | 🟠 | 🟡 |
+|---|---|---|---|---|
+{% for c in crit_rows %}
+| {{ c.criterion|crit }} | {{ c.total }} | {{ c.critical }} | {{ c.major }} | {{ c.minor }} |
+{% endfor %}
+
+{% endif %}
+### Критичные дефекты
+
+{% if n_critical %}
+{% for fam, fs in families.items() %}
+{% if fs %}
+**{{ fam }}** ({{ fs|length }}):
+
+{% for f in fs %}
+- {{ f.fid|ref }} — {{ f.title|mdtext }} — {% if f.rids %}{{ f.rids|refs }}{% else %}набор в целом{% endif %} — {{ (f.location or "место не указано")|mdtext }}
+{% endfor %}
+
+{% endif %}
+{% endfor %}
+{% else %}
+Критичных дефектов не найдено.
+
+{% endif %}
+## <a id="questions"></a>6. Уточняющие вопросы автору документа
+
+{% if questions %}
+Без ответов на эти вопросы требования нельзя однозначно реализовать и проверить. Вопросов: **{{ n_questions }}**, с ответом: {{ n_answered }}.
+
+{% for q in questions %}
+### <a id="{{ q.qid }}"></a>{{ q.qid }}. {{ q.question|mdtext }}
+
+**Почему это важно:** {{ q.why|autolink }}
+
+{% if q.options %}
+**Варианты ответа:**
+
+{% for o in q.options %}
+{{ loop.index }}. {{ o|mdtext }}
+{% endfor %}
+
+{% endif %}
+{% if q.fids or q.rids %}
+**Связано с:** {{ (q.fids + q.rids)|refs }}
+
+{% endif %}
+**Ответ:** {{ q.answer|mdtext if q.answer else "_ответ не получен_" }}
+
+{% endfor %}
+{% else %}
+Уточняющих вопросов нет: неоднозначностей, которые нельзя разрешить по тексту документа, не найдено.
+
+{% endif %}
+## <a id="verdict"></a>7. Итог
+
+| Готовность | Решение |
+|---|---|
+| К разработке | {{ "✅ да" if d.verdict.ready_for_development else "⛔ нет" }} |
+| К тестированию | {{ "✅ да" if d.verdict.ready_for_testing else "⛔ нет" }} |
+
+**Обоснование:** {{ d.verdict.rationale|autolink }}
+
+{% if d.verdict.top_fixes %}
+### Что исправить в первую очередь
+
+{% for t in d.verdict.top_fixes %}
+{{ loop.index }}. {{ t|autolink }}
+{% endfor %}
+{% else %}
+### Что исправить в первую очередь
+
+Первоочередных исправлений нет.
+{% endif %}
+
+---
+
+## <a id="method"></a>Приложение. Методика
+
+**Как работает проверка.** Агент проходит документ по стадиям: (1) разбор файла на адресуемые блоки с позицией в тексте; (2) выделение отдельных требований с точной цитатой и привязкой к месту; (3) детерминированные проверки по правилам (линтер: размытые слова, пассивный залог, отсутствие измеримых значений и т. п.); (4) проверка каждого требования моделью по критериям ISO/IEC/IEEE 29148:2018 §5.2.5; (5) проверка набора требований целиком по §5.2.6 и IEEE 830-1998 §4.3 (противоречия, пропуски, терминология); (6) прогон критериев приёмки против правил документа и предметный fintech-чек-лист; (7) критик: каждая цитата замечания сверяется с текстом документа, неподтверждённые замечания отбрасываются или помечаются; (8) формирование уточняющих вопросов и итогового заключения.
+
+**Критерии, по которым выставлены замечания в этом отчёте:**
+
+| Критерий | Стандарт | Что означает |
+|---|---|---|
+{% for c, (name, ref, desc) in criteria_catalog.items() %}
+| {{ name }} | {{ ref }} | {{ desc }} |
+{% endfor %}
+
+**Серьёзность замечаний:**
+
+{% for s, (name, icon, desc) in severities.items() %}
+- {{ icon }} **{{ name }}** — {{ desc }}
+{% endfor %}
+
+**Уверенность** — оценка агента от 0 до 100%: насколько он уверен, что замечание обосновано текстом. Замечания с низкой уверенностью стоит перепроверить человеку.

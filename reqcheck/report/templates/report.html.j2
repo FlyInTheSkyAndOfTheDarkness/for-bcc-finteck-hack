@@ -1,0 +1,322 @@
+{% macro finding(f) %}
+<article class="finding sev-{{ f.severity.value }}" id="{{ f.fid }}" data-sev="{{ f.severity.value }}" data-crit="{{ f.criterion.value }}">
+  <h4><span class="fid">{{ f.fid }}</span> <span class="badge b-{{ f.severity.value }}">{{ SEV_ICON[f.severity.value] }} {{ f.severity|sevname }}</span> <span class="crit">{{ f.criterion|crit }}</span> {{ f.title }}</h4>
+  <p class="meta">Критерий: {{ f.criterion|crit }} <span class="std">({{ f.criterion|critref }})</span></p>
+  <p class="label">Цитата</p>
+  <blockquote>{{ f.quote }}</blockquote>
+  <p><span class="label">Место:</span> {{ f.location or "не указано" }}</p>
+  <p><span class="label">Почему это дефект:</span> {{ f.explanation|autolink }}</p>
+  <p><span class="label">Как исправить:</span> {{ f.recommendation|autolink }}</p>
+  {% if f.rids|length > 1 or f.scope == "set" and f.rids %}<p><span class="label">Затронутые требования:</span> {{ f.rids|refs }}</p>{% endif %}
+  {% if q_for_f.get(f.fid) %}<p><span class="label">Уточняющие вопросы:</span> {{ q_for_f[f.fid]|refs }}</p>{% endif %}
+  <p class="small">уверенность {{ (f.confidence * 100)|round|int }}% · источник: {{ f.source|source }}{% if f.verified %} · подтверждено критиком{% endif %}{% if not f.grounded %} · ⚠️ цитата не найдена в документе дословно{% endif %}</p>
+</article>
+{% endmacro %}
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Отчёт о проверке требований: {{ p.doc_name }}</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1c2330;--muted:#5d6878;--line:#dde2ea;--accent:#2457c5;--crit:#c62828;--major:#d9730d;--minor:#a88a00;--ok:#2e7d32;--critbg:#fdecea;--majorbg:#fff3e6;--minorbg:#fff9e0;--okbg:#e8f5e9;--quote:#eef2f9}
+@media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1a2029;--fg:#e4e8ee;--muted:#9aa5b5;--line:#2c3542;--accent:#7aa2ff;--crit:#ff7b72;--major:#ffa657;--minor:#e3c14f;--ok:#6fcf7a;--critbg:#3a1f22;--majorbg:#3a2a18;--minorbg:#383217;--okbg:#1c3322;--quote:#222b38}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.layout{display:flex;align-items:flex-start;max-width:1300px;margin:0 auto}
+nav{position:sticky;top:0;align-self:flex-start;width:250px;flex:none;max-height:100vh;overflow:auto;padding:20px 16px;font-size:14px}
+nav a{display:block;padding:4px 8px;color:var(--muted);text-decoration:none;border-radius:6px}
+nav a:hover{background:var(--card);color:var(--accent)}
+nav .tools{margin-top:14px;display:grid;gap:6px}
+nav select,nav input{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg);font:inherit}
+main{flex:1;min-width:0;padding:20px 24px 60px}
+h1{font-size:26px;margin:0 0 12px}
+h2{font-size:21px;margin:40px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+h3{font-size:17px;margin:26px 0 8px}
+h4{font-size:15px;margin:0 0 6px}
+a{color:var(--accent)}
+.summary{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:8px;padding:14px 18px;font-size:16px}
+.summary.bad{border-left-color:var(--crit)}.summary.good{border-left-color:var(--ok)}
+table{border-collapse:collapse;width:100%;background:var(--card);border:1px solid var(--line);border-radius:8px;font-size:14px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--quote);font-weight:600}
+td.num,th.num{text-align:right}
+.tablewrap{overflow-x:auto}
+.req{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin:14px 0}
+.req>h3{margin-top:0}
+.req.st-critical{border-left:5px solid var(--crit)}.req.st-warn{border-left:5px solid var(--major)}
+.finding{border:1px solid var(--line);border-left:4px solid var(--minor);border-radius:6px;padding:10px 14px;margin:12px 0;background:var(--bg)}
+.finding.sev-critical{border-left-color:var(--crit)}.finding.sev-major{border-left-color:var(--major)}
+.finding p{margin:5px 0}
+blockquote{margin:4px 0 8px;padding:8px 12px;background:var(--quote);border-left:3px solid var(--line);border-radius:4px;white-space:pre-wrap;overflow-wrap:anywhere}
+.label{font-weight:600;color:var(--muted)}
+.fid,.rid{font-family:ui-monospace,Consolas,monospace;font-weight:700}
+.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600}
+.b-critical{background:var(--critbg);color:var(--crit)}.b-major{background:var(--majorbg);color:var(--major)}.b-minor{background:var(--minorbg);color:var(--minor)}
+.crit{color:var(--muted);font-weight:600}
+.std,.meta,.small{color:var(--muted);font-size:13px}
+.ok-list{list-style:none;padding:0;margin:0}.ok-list li{padding:4px 0;border-bottom:1px dashed var(--line)}
+.q{background:var(--card);border:2px solid var(--accent);border-radius:10px;padding:14px 18px;margin:14px 0}
+.q h3{margin:0 0 6px}
+.q .ans{padding:6px 10px;border-radius:6px;background:var(--quote)}
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0}
+.vcard{border-radius:8px;padding:12px 16px;font-weight:700;font-size:16px}
+.vyes{background:var(--okbg);color:var(--ok)}.vno{background:var(--critbg);color:var(--crit)}
+.hidden{display:none!important}
+.sticky-mobile{display:none}
+@media (max-width:900px){.layout{display:block}nav{position:static;width:auto;max-height:none}}
+@media print{nav,.tools{display:none}body{background:#fff;color:#000}.layout{display:block}main{padding:0}.req,.finding,.q{break-inside:avoid}a{color:#000;text-decoration:none}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav aria-label="Оглавление">
+  <strong>Оглавление</strong>
+  <a href="#passport">1. Паспорт прогона</a>
+  <a href="#slicing">2. Нарезка требований</a>
+  <a href="#requirements">3. Проверка требований</a>
+  <a href="#set">4. Проверка набора</a>
+  <a href="#summary">5. Сводка</a>
+  <a href="#questions">6. Уточняющие вопросы</a>
+  <a href="#verdict">7. Итог</a>
+  <a href="#method">Приложение: методика</a>
+  <div class="tools">
+    <input type="search" id="q" placeholder="Поиск по отчёту…" aria-label="Поиск">
+    <select id="fsev" aria-label="Серьёзность">
+      <option value="">Все серьёзности</option>
+      {% for s, (name, icon, desc) in severities.items() %}
+      <option value="{{ s.value }}">{{ icon }} {{ name }}</option>
+      {% endfor %}
+    </select>
+    <select id="fcrit" aria-label="Критерий">
+      <option value="">Все критерии</option>
+      {% for c in crit_rows %}
+      <option value="{{ c.criterion.value }}">{{ c.criterion|crit }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</nav>
+<main>
+<h1>Отчёт о проверке требований: {{ p.doc_name }}</h1>
+<div class="summary {{ 'good' if d.verdict.ready_for_development and d.verdict.ready_for_testing else ('bad' if n_critical else '') }}">{{ summary_text }}</div>
+
+<h2 id="passport">1. Паспорт прогона</h2>
+<div class="tablewrap"><table>
+<tr><th>Документ</th><td>{{ p.doc_name }}</td></tr>
+<tr><th>Файл</th><td><code>{{ p.doc_path }}</code></td></tr>
+<tr><th>SHA-256 (начало)</th><td><code>{{ sha_short }}</code></td></tr>
+<tr><th>Формат</th><td>{{ p.doc_format }}</td></tr>
+<tr><th>Дата и время прогона</th><td>{{ p.run_at }}</td></tr>
+<tr><th>Провайдер / модель</th><td>{{ p.provider }} / {{ p.model }}</td></tr>
+<tr><th>Версия агента</th><td>{{ p.agent_version }}</td></tr>
+<tr><th>Версия промптов</th><td>{{ p.prompt_version }}</td></tr>
+<tr><th>Параметры</th><td>{{ p.params|params }}</td></tr>
+<tr><th>Вызовов LLM</th><td>{{ p.llm_calls }}</td></tr>
+<tr><th>Токенов всего</th><td>{{ p.tokens_total }}</td></tr>
+<tr><th>Длительность</th><td>{{ p.duration_s|dur }}</td></tr>
+</table></div>
+
+<h2 id="slicing">2. Нарезка требований</h2>
+<p>Агент выделил <strong>{{ n }}</strong> требований. Если в документе у требования не было номера, агент присвоил свой идентификатор и сохранил цитату.</p>
+{% if req_rows %}
+<div class="tablewrap"><table>
+<thead><tr><th>ID в отчёте</th><th>ID в документе</th><th>Вид</th><th>Краткая формулировка</th><th>Цитата</th><th>Место</th></tr></thead>
+<tbody>
+{% for x in req_rows %}
+<tr><td>{{ x.r.rid|ref }}</td><td>{{ x.r.doc_id or "— (присвоен агентом)" }}</td><td>{{ x.r.kind|kind }}</td><td>{{ x.r.summary }}</td><td>{{ x.r.quote|short }}</td><td>{{ x.r.location or "—" }}</td></tr>
+{% endfor %}
+</tbody>
+</table></div>
+{% else %}
+<p><em>Требования в документе не выделены.</em></p>
+{% endif %}
+
+<h2 id="requirements">3. Проверка каждого требования</h2>
+<p class="small">Статус: ✅ замечаний нет · ⚠️ есть замечания · ❌ есть критичное замечание.</p>
+{% for x in dirty_rows %}
+<section class="req st-{{ x.status }}" id="{{ x.r.rid }}">
+  <h3>{{ "❌" if x.status == "critical" else "⚠️" }} {{ x.r.rid }}{% if x.r.doc_id %} ({{ x.r.doc_id }}){% endif %} — {{ x.r.summary }}</h3>
+  <p class="small">Вид: {{ x.r.kind|kind }} · Место: {{ x.r.location or "не указано" }}{% if not x.r.grounded %} · ⚠️ цитата не найдена в документе дословно{% endif %}</p>
+  <blockquote>{{ x.r.quote }}</blockquote>
+  {% for f in x.findings %}
+  {{ finding(f) }}
+  {% endfor %}
+  {% if x.also %}<p><span class="label">Также затронуто замечаниями:</span> {{ x.also|map(attribute="fid")|list|refs }}</p>{% endif %}
+  {% if x.set_refs %}<p><span class="label">Замечания к набору, затрагивающие это требование:</span> {{ x.set_refs|map(attribute="fid")|list|refs }}</p>{% endif %}
+</section>
+{% endfor %}
+{% if orphan %}
+<section class="req st-warn">
+  <h3>Замечания без привязки к конкретному требованию</h3>
+  {% for f in orphan %}
+  {{ finding(f) }}
+  {% endfor %}
+</section>
+{% endif %}
+{% if clean_rows %}
+<h3>✅ Требования без замечаний ({{ clean_rows|length }})</h3>
+<ul class="ok-list">
+{% for x in clean_rows %}
+  <li class="searchable" id="{{ x.r.rid }}">✅ <span class="rid">{{ x.r.rid }}</span>{% if x.r.doc_id %} ({{ x.r.doc_id }}){% endif %} — {{ x.r.summary }}. <span class="small">Цитата: «{{ x.r.quote|short }}»</span></li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<h2 id="set">4. Проверка набора требований целиком</h2>
+{% if set_criteria %}
+<div class="tablewrap"><table>
+<thead><tr><th>Критерий набора</th><th>Оценка</th></tr></thead>
+<tbody>
+{% for c, a in set_criteria %}
+<tr><td>{{ c|crit }} <span class="std">({{ c|critref }})</span></td><td>{{ a }}</td></tr>
+{% endfor %}
+</tbody>
+</table></div>
+{% else %}
+<p><em>Оценка по критериям набора не получена.</em></p>
+{% endif %}
+{% if set_findings %}
+<h3>Замечания к набору</h3>
+{% for f in set_findings %}
+{{ finding(f) }}
+{% endfor %}
+{% else %}
+<p>Замечаний уровня набора нет.</p>
+{% endif %}
+{% if d.set_summary.notes %}
+<h3>Заметки по набору</h3>
+<ul>
+{% for note in d.set_summary.notes %}
+<li>{{ note|autolink }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<h2 id="summary">5. Сводка</h2>
+<ul>
+<li>Требований проверено: <strong>{{ n }}</strong></li>
+<li>Замечаний всего: <strong>{{ n_findings }}</strong> — 🔴 критичных {{ sev_count["critical"] }}, 🟠 существенных {{ sev_count["major"] }}, 🟡 незначительных {{ sev_count["minor"] }}</li>
+<li>Требований с замечаниями: <strong>{{ affected }} из {{ n }}</strong> ({{ share }}%)</li>
+<li>Уточняющих вопросов: {{ n_questions }} (с ответом: {{ n_answered }})</li>
+</ul>
+{% if crit_rows %}
+<h3>Замечания по критериям</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Критерий</th><th class="num">Всего</th><th class="num">🔴</th><th class="num">🟠</th><th class="num">🟡</th></tr></thead>
+<tbody>
+{% for c in crit_rows %}
+<tr><td>{{ c.criterion|crit }}</td><td class="num">{{ c.total }}</td><td class="num">{{ c.critical }}</td><td class="num">{{ c.major }}</td><td class="num">{{ c.minor }}</td></tr>
+{% endfor %}
+</tbody>
+</table></div>
+{% endif %}
+<h3>Критичные дефекты</h3>
+{% if n_critical %}
+{% for fam, fs in families.items() %}
+{% if fs %}
+<p><strong>{{ fam }}</strong> ({{ fs|length }}):</p>
+<ul>
+{% for f in fs %}
+<li>{{ f.fid|ref }} — {{ f.title }} — {% if f.rids %}{{ f.rids|refs }}{% else %}набор в целом{% endif %} — {{ f.location or "место не указано" }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+{% endfor %}
+{% else %}
+<p>Критичных дефектов не найдено.</p>
+{% endif %}
+
+<h2 id="questions">6. Уточняющие вопросы автору документа</h2>
+{% if questions %}
+<p>Без ответов на эти вопросы требования нельзя однозначно реализовать и проверить. Вопросов: <strong>{{ n_questions }}</strong>, с ответом: {{ n_answered }}.</p>
+{% for q in questions %}
+<section class="q" id="{{ q.qid }}">
+  <h3>{{ q.qid }}. {{ q.question }}</h3>
+  <p><span class="label">Почему это важно:</span> {{ q.why|autolink }}</p>
+  {% if q.options %}
+  <p class="label">Варианты ответа:</p>
+  <ol>
+  {% for o in q.options %}<li>{{ o }}</li>
+  {% endfor %}
+  </ol>
+  {% endif %}
+  {% if q.fids or q.rids %}<p><span class="label">Связано с:</span> {{ (q.fids + q.rids)|refs }}</p>{% endif %}
+  <p class="ans"><span class="label">Ответ:</span> {% if q.answer %}{{ q.answer }}{% else %}<em>ответ не получен</em>{% endif %}</p>
+</section>
+{% endfor %}
+{% else %}
+<p>Уточняющих вопросов нет: неоднозначностей, которые нельзя разрешить по тексту документа, не найдено.</p>
+{% endif %}
+
+<h2 id="verdict">7. Итог</h2>
+<div class="verdict">
+  <div class="vcard {{ 'vyes' if d.verdict.ready_for_development else 'vno' }}">К разработке: {{ "✅ да" if d.verdict.ready_for_development else "⛔ нет" }}</div>
+  <div class="vcard {{ 'vyes' if d.verdict.ready_for_testing else 'vno' }}">К тестированию: {{ "✅ да" if d.verdict.ready_for_testing else "⛔ нет" }}</div>
+</div>
+<p><strong>Обоснование:</strong> {{ d.verdict.rationale|autolink }}</p>
+<h3>Что исправить в первую очередь</h3>
+{% if d.verdict.top_fixes %}
+<ol>
+{% for t in d.verdict.top_fixes %}
+<li>{{ t|autolink }}</li>
+{% endfor %}
+</ol>
+{% else %}
+<p>Первоочередных исправлений нет.</p>
+{% endif %}
+
+<h2 id="method">Приложение. Методика</h2>
+<p><strong>Как работает проверка.</strong> Агент проходит документ по стадиям: (1) разбор файла на адресуемые блоки с позицией в тексте; (2) выделение отдельных требований с точной цитатой и привязкой к месту; (3) детерминированные проверки по правилам (линтер: размытые слова, пассивный залог, отсутствие измеримых значений и т. п.); (4) проверка каждого требования моделью по критериям ISO/IEC/IEEE 29148:2018 §5.2.5; (5) проверка набора требований целиком по §5.2.6 и IEEE 830-1998 §4.3 (противоречия, пропуски, терминология); (6) прогон критериев приёмки против правил документа и предметный fintech-чек-лист; (7) критик: каждая цитата замечания сверяется с текстом документа, неподтверждённые замечания отбрасываются или помечаются; (8) формирование уточняющих вопросов и итогового заключения.</p>
+<p><strong>Критерии, используемые агентом:</strong></p>
+<div class="tablewrap"><table>
+<thead><tr><th>Критерий</th><th>Стандарт</th><th>Что означает</th></tr></thead>
+<tbody>
+{% for c, (name, ref, desc) in criteria_catalog.items() %}
+<tr><td>{{ name }}</td><td>{{ ref }}</td><td>{{ desc }}</td></tr>
+{% endfor %}
+</tbody>
+</table></div>
+<p><strong>Серьёзность замечаний:</strong></p>
+<ul>
+{% for s, (name, icon, desc) in severities.items() %}
+<li>{{ icon }} <strong>{{ name }}</strong> — {{ desc }}</li>
+{% endfor %}
+</ul>
+<p><strong>Уверенность</strong> — оценка агента от 0 до 100%: насколько он уверен, что замечание обосновано текстом. Замечания с низкой уверенностью стоит перепроверить человеку.</p>
+</main>
+</div>
+<script>
+(function(){
+  var q=document.getElementById('q'),fs=document.getElementById('fsev'),fc=document.getElementById('fcrit');
+  var items=[].slice.call(document.querySelectorAll('.finding,.q,.ok-list li,.req'));
+  function apply(){
+    var t=(q.value||'').toLowerCase().trim(),s=fs.value,c=fc.value;
+    items.forEach(function(el){
+      var hide=false;
+      if(el.classList.contains('finding')){
+        if(s&&el.dataset.sev!==s)hide=true;
+        if(c&&el.dataset.crit!==c)hide=true;
+      } else if(el.classList.contains('req')){
+        var vis=el.querySelectorAll('.finding:not(.hidden)').length;
+        var has=el.querySelectorAll('.finding').length;
+        if(has&&!vis&&(s||c||t))hide=true;
+      }
+      if(t&&!hide&&!el.classList.contains('req')&&el.textContent.toLowerCase().indexOf(t)<0)hide=true;
+      el.classList.toggle('hidden',hide);
+    });
+    // req containers: re-evaluate after findings were toggled
+    document.querySelectorAll('.req').forEach(function(el){
+      var has=el.querySelectorAll('.finding').length;
+      if(has){
+        var vis=el.querySelectorAll('.finding:not(.hidden)').length;
+        el.classList.toggle('hidden',!vis&&!!(s||c||t));
+      } else if(t){
+        el.classList.toggle('hidden',el.textContent.toLowerCase().indexOf(t)<0);
+      }
+    });
+  }
+  [q,fs,fc].forEach(function(e){e.addEventListener('input',apply);e.addEventListener('change',apply);});
+})();
+</script>
+</body>
+</html>
