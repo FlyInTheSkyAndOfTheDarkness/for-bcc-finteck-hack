@@ -12,8 +12,43 @@ def _cell(text: str) -> str:
     return " ".join(text.split()).replace("|", "\\|")
 
 
+def _style_name(p) -> str:
+    try:
+        return (p.style.name if p.style is not None else "") or ""
+    except Exception:  # noqa: BLE001  битые/нестандартные стили
+        return ""
+
+
+def _is_bold_heading(p, text: str) -> bool:
+    """Абзац-«заголовок» без стиля Heading: целиком жирный, короткий, без точки в конце."""
+    runs = [r for r in p.runs if r.text.strip()]
+    if not runs or len(text.split()) > 12 or len(text) > 120 or text[-1] in ".;:,!?":
+        return False
+    style_bold = False
+    try:
+        style_bold = bool(p.style is not None and p.style.font.bold)
+    except Exception:  # noqa: BLE001
+        pass
+    return all(r.bold or (r.bold is None and style_bold) for r in runs)
+
+
+_NUM_HEADING = re.compile(r"^\d+(?:\.\d+)*\.?\s+(?=[А-ЯЁA-Z])")
+_GENERIC_HEADINGS = re.compile(r"введени|глоссари|термин|сокращени|область применени|приложени|"
+                               r"требовани|сведени|цел[иь]\b|назначени", re.I)
+
+
+def _is_numbered_heading(text: str) -> bool:
+    """Обычный абзац «3. Функциональные требования» — заголовок раздела, набранный вручную."""
+    m = _NUM_HEADING.match(text)
+    if not m or len(text.split()) > 8 or text[-1] in ".;:,!?":
+        return False
+    from reqcheck.segment import SECTION_RULES
+    bare = text[m.end():]
+    return bool(_GENERIC_HEADINGS.search(bare) or any(rx.search(bare) for rx, _ in SECTION_RULES))
+
+
 def _is_code(p) -> bool:
-    if p.style is not None and p.style.name.lower() in _CODE_STYLES:
+    if _style_name(p).lower() in _CODE_STYLES:
         return True
     runs = [r for r in p.runs if r.text.strip()]
     return bool(runs) and all(r.font.name and any(f in r.font.name.lower() for f in _CODE_FONTS) for r in runs)
@@ -28,6 +63,7 @@ def docx_to_markdown(path: Path) -> str:
     out: list[str] = []
     code: list[str] = []
     counter = 0
+    seen_heading = False
 
     def flush_code():
         nonlocal code
@@ -48,11 +84,20 @@ def docx_to_markdown(path: Path) -> str:
                 counter = 0
                 out.append("")
                 continue
-            style = (p.style.name if p.style is not None else "") or ""
-            m = re.match(r"(?i)heading\s*(\d)", style)
-            if m or style.lower() == "title":
+            style = _style_name(p)
+            m = re.match(r"(?i)(?:heading|заголовок)\s*(\d)", style)
+            if m or style.lower() in ("title", "название", "заголовок"):
                 counter = 0
                 out += ["", "#" * (int(m.group(1)) if m else 1) + " " + text, ""]
+                seen_heading = True
+            elif (_is_bold_heading(p, text) or _is_numbered_heading(text)) \
+                    and "list" not in style.lower() and el.find(".//{*}numPr") is None:
+                # заголовок, оформленный жирным шрифтом: уровень по номеру «2.1 …», первый — название
+                counter = 0
+                num = re.match(r"^(\d+(?:\.\d+)*)\.?\s", text)
+                level = (2 + num.group(1).count(".")) if num else (1 if not seen_heading else 2)
+                out += ["", "#" * min(level, 6) + " " + text, ""]
+                seen_heading = True
             elif "list number" in style.lower():
                 counter += 1
                 out.append(f"{counter}. {text}")

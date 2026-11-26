@@ -1,7 +1,8 @@
-google-genai>=1.0
+google-genai>=1.50   # thinking_level для Gemini 3.x; проверено на 3.6
 pydantic>=2.6
 python-dotenv>=1.0
 pymupdf>=1.24
+pymupdf4llm>=0.0.17   # PDF → Markdown с таблицами (без него — простой текст)
 python-docx>=1.1
 rapidfuzz>=3.6
 pyyaml>=6.0
@@ -9,6 +10,7 @@ jinja2>=3.1
 markdown>=3.5
 rich>=13.0
 streamlit>=1.35
+pandas>=1.4
 pytest>=8.0
 # необязательные провайдеры:
 # openai>=1.30

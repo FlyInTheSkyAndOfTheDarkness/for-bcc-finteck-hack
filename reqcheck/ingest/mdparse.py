@@ -72,7 +72,9 @@ def _structural(line: str) -> bool:
 class MdParser:
     """Потоковый разбор; feed() можно вызывать по страницам, section_path сохраняется."""
 
-    def __init__(self) -> None:
+    def __init__(self, line_paragraphs: bool = False) -> None:
+        # line_paragraphs (TXT): строка на .!?; и следующая с заглавной — разные абзацы
+        self.line_paragraphs = line_paragraphs
         self.blocks: list[Block] = []
         self.stack: list[tuple[int, str]] = []
         self.title: Optional[str] = None
@@ -208,6 +210,9 @@ class MdParser:
                 self._item["parts"].append(raw.strip())
                 self._item["le"] = ln
                 continue
+            if (self.line_paragraphs and self._para and self._para[-1][0][-1:] in ".!?;"
+                    and re.match(r"[A-ZА-ЯЁ0-9«\"]", raw.strip())):
+                self._flush(page)
             self._para.append((raw.strip(), ln))
         self._flush(page)
         return line_offset + len(lines)

@@ -37,7 +37,7 @@ ID_RE = re.compile(
     r"^\s*(?:\d+[.)]\s+)?[\[(]?(?P<id>[A-ZА-ЯЁ][A-ZА-ЯЁa-zа-яё]{0,6}[-‑–]\d+(?:\.\d+)*)[\])]?"
     r"(?=[.:)\s]|$)[.:)]?\s*")
 NUM_RE = re.compile(r"^\s*\d+(?:\.\d+)*[.)]\s+")
-MODAL_RE = re.compile(r"(?<![а-яё])(должн[аоы]?|обязан\w*|необходимо|требуется|следует|"
+MODAL_RE = re.compile(r"(?<![а-яё])(долж(?:ен|н[аоы]?)|обязан\w*|необходимо|требуется|следует|"
                       r"не допускается|запрещ\w+)(?![а-яё])|\b(shall|must|should)\b", re.I)
 BOILERPLATE_RE = re.compile(r"^(не используют?ся|не используется|не применяется|не применимо|"
                             r"нет|отсутству\w+|не требуется|n/?a|tbd|—|-|или|и|либо)\.?$", re.I)
@@ -80,6 +80,14 @@ PARAM_NAME_COL = _H(r"^(parameter|param|параметр|поле|field|name|н�
 PARAM_FMT_COL = _H(r"^(format|type|тип|формат)\b")
 PARAM_DESC_COL = _H(r"^(description|описание|назначение)\b")
 
+# Номер раздела в начале заголовка: «2.», «3.1», «IV.», «A)», «Раздел 2.».
+HEADING_NUM_RE = re.compile(r"^\s*(?:(?:раздел|глава|section|part)\s+)?"
+                            r"(?:\d+(?:\.\d+)*\.?|[IVXLC]+\.|[А-ЯЁA-Z][.)])\s+", re.I)
+# Несколько требований с ID в одном абзаце (PDF без интервалов между строками):
+# «FR-1. … FR-2. …» — ID в начале предложения.
+INLINE_ID_RE = re.compile(r"(?:^|(?<=[.;!?])\s+)(?P<id>[A-ZА-ЯЁ][A-ZА-ЯЁa-zа-яё]{0,6}[-‑–]\d+(?:\.\d+)*)"
+                          r"[.:)]\s+(?=\S)")
+
 FLEX_KINDS = {ReqKind.functional, ReqKind.nonfunctional, ReqKind.data, ReqKind.integration,
               ReqKind.ui, ReqKind.process, ReqKind.business}
 
@@ -109,13 +117,16 @@ def section_mode(b: Block) -> tuple[Optional[str], bool]:
     api_ctx = any(API_CTX_RE.search(h) for h in path) or bool(b.part and API_CTX_RE.search(b.part))
     for h in reversed(path):
         hh = h.strip()
-        if api_ctx:
-            for rx, mode in API_SECTION_RULES:
-                if rx.search(hh):
-                    return mode, True
-        for rx, mode in SECTION_RULES:
-            if rx.search(hh):
-                return (mode if not (api_ctx and mode in ("functional",)) else "api"), api_ctx
+        bare = HEADING_NUM_RE.sub("", hh, count=1)
+        # сначала заголовок как есть, затем без номера («2. Цели проекта» → «Цели проекта»)
+        for cand in ((hh, bare) if bare and bare != hh else (hh,)):
+            if api_ctx:
+                for rx, mode in API_SECTION_RULES:
+                    if rx.search(cand):
+                        return mode, True
+            for rx, mode in SECTION_RULES:
+                if rx.search(cand):
+                    return (mode if not (api_ctx and mode in ("functional",)) else "api"), api_ctx
     return None, api_ctx
 
 
@@ -211,6 +222,30 @@ def _status_entries(text: str) -> list[tuple[str, str]]:
     return out
 
 
+def _id_entries(text: str) -> list[tuple[str, str]]:
+    """Разбить абзац «FR-1. … FR-2. …» на (ID, фрагмент дословно), если в нём ≥ 2 ID одного префикса."""
+    ms = [m for m in INLINE_ID_RE.finditer(text) if explicit_id(m.group("id") + " ")]
+    if len(ms) < 2 or ms[0].start("id") != len(text) - len(text.lstrip()):
+        return []
+    prefixes = {m.group("id").replace("‑", "-").replace("–", "-").split("-")[0] for m in ms}
+    if len(prefixes) != 1:
+        return []
+    out = []
+    for i, m in enumerate(ms):
+        end = ms[i + 1].start("id") if i + 1 < len(ms) else len(text)
+        frag = text[m.start("id"):end].strip()
+        out.append((explicit_id(frag) or m.group("id"), frag))
+    return out
+
+
+def _mode_kind(mode: Optional[str], api_ctx: bool) -> ReqKind:
+    if mode is None:
+        return ReqKind.api if api_ctx else ReqKind.functional
+    if mode in ("api", "api_general", "api_status"):
+        return ReqKind.api
+    return ReqKind(mode)
+
+
 def _meta_summary(heading: str, blocks: list[Block]) -> str:
     rows = sum(1 for b in blocks if b.kind == BlockKind.table_row)
     tail = f" (таблица, {rows} стр.)" if rows else ""
@@ -243,6 +278,14 @@ def rule_segment(doc: Document) -> list[_Cand]:
             continue
         if b.kind == BlockKind.table_row and not any((c or "").strip() for c in (b.cells or [text])):
             continue
+
+        if b.kind in (BlockKind.text, BlockKind.list_item) and mode != "api_status":
+            entries = _id_entries(text)
+            if entries:
+                kind = _mode_kind(mode, api_ctx)
+                for k, (eid, frag) in enumerate(entries):
+                    cands.append(_Cand(kind, frag, [b], eid, summarize(frag), (pos[b.id], k)))
+                continue
 
         if mode is None:
             # раздел без «требовательного» заголовка: берём только явно пронумерованные

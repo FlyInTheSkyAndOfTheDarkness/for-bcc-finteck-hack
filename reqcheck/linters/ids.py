@@ -40,7 +40,8 @@ def run(ctx: Ctx) -> list[Finding]:
         simple = sorted({int(n) for n, _ in items if n.isdigit()})
         if len(simple) >= 2:
             gaps = [n for n in range(simple[0], simple[-1] + 1) if n not in simple]
-            if gaps:
+            # «КП-1 … КП-2024» — это не нумерация с пропусками, а разные коды; не шумим
+            if gaps and len(gaps) <= max(10, len(simple)):
                 after = next(r for n, r in items if n.isdigit() and int(n) > gaps[0])
                 b = ctx.by_id[after.block_ids[0]]
                 miss = ", ".join(f"{prefix}-{g}" for g in gaps)
@@ -64,7 +65,8 @@ def run(ctx: Ctx) -> list[Finding]:
                 sections.append(s)
         first = unnumbered[0]
         b = ctx.by_id[first.block_ids[0]]
-        quote = re.split(r"(?<=[.!?])\s+", first.quote, maxsplit=1)[0]
+        body = re.sub(r"^\s*\d+(?:\.\d+)*[.)]\s+", "", first.quote, count=1) or first.quote
+        quote = re.split(r"(?<=[.!?])\s+", body, maxsplit=1)[0]
         listed = ", ".join(f"«{s}»" for s in sections[:8])
         out.append(ctx.finding(
             criterion=Criterion.traceable, severity=Severity.minor, scope="set",

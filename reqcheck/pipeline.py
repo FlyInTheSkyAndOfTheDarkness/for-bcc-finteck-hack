@@ -110,6 +110,9 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
         llm_calls=llm.stats.calls, tokens_total=llm.stats.tokens_total,
         duration_s=round(time.time() - t0, 1),
     )
-    say("done", f"Готово за {passport.duration_s} с, вызовов LLM: {llm.stats.calls}")
+    errs = getattr(llm.stats, "errors", 0)
+    say("done", f"Готово за {passport.duration_s} с, вызовов LLM: {llm.stats.calls}"
+        + (f"; не удалось выполнить запросов к LLM: {errs} — часть проверок пропущена, "
+           f"см. {settings.trace_path.name if settings.trace_path else 'журнал'}" if errs else ""))
     return ReportData(passport=passport, requirements=reqs, findings=found, questions=questions,
                       set_summary=summary, verdict=verdict)

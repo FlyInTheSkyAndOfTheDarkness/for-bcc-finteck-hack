@@ -11,12 +11,13 @@ from reqcheck.models import Question
 
 def _ask_console(q: Question) -> str | None:
     from rich.console import Console
+    from rich.markup import escape
     from rich.prompt import Prompt
     c = Console()
-    c.print(f"\n[bold cyan]{q.qid}[/] {q.question}")
-    c.print(f"[dim]Зачем: {q.why}[/]")
+    c.print(f"\n[bold cyan]{escape(str(q.qid))}[/] {escape(q.question)}")   # текст от LLM: «[…]» — не разметка
+    c.print(f"[dim]Зачем: {escape(q.why or '')}[/]")
     for i, o in enumerate(q.options, 1):
-        c.print(f"  {i}. {o}")
+        c.print(f"  {i}. {escape(o)}")
     ans = Prompt.ask("Ответ (номер, свой текст или Enter — пропустить)", default="", show_default=False)
     if ans.isdigit() and 1 <= int(ans) <= len(q.options):
         return q.options[int(ans) - 1]
@@ -24,8 +25,12 @@ def _ask_console(q: Question) -> str | None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+    for stream in (sys.stdout, sys.stderr):   # русские сообщения и журнал провайдера в консоли Windows
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (OSError, ValueError):
+                pass
     ap = argparse.ArgumentParser(prog="reqcheck", description="ИИ-агент проверки требований (ISO 29148 / IEEE 830)")
     ap.add_argument("input", help="файл требований: .pdf .docx .md .txt .html")
     ap.add_argument("-o", "--output", default="reports/report.md", help="файл отчёта (.md); рядом кладётся .html")
@@ -37,8 +42,22 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     from rich.console import Console
+    from rich.markup import escape
     con = Console()
+    from reqcheck.ingest import SUPPORTED
+    src = Path(args.input)
+    if not src.is_file():
+        con.print(f"[red]Файл не найден: {escape(str(src))}[/]")
+        return 2
+    if src.suffix.lower() not in SUPPORTED:
+        con.print(f"[red]Неподдерживаемый формат {escape(src.suffix or src.name)}: {', '.join(sorted(SUPPORTED))}[/]")
+        return 2
     out = Path(args.output)
+    if out.suffix.lower() in (".html", ".htm", ".json") or \
+            src.resolve() in {out.resolve(), out.with_suffix(".html").resolve(), out.with_suffix(".json").resolve()}:
+        con.print("[red]Укажите в -o отдельный файл отчёта .md (например reports/report.md); "
+                  "входной документ не должен перезаписываться.[/]")
+        return 2
     out.parent.mkdir(parents=True, exist_ok=True)
     settings = load_settings(provider=args.provider, model=args.model,
                              use_cache=not args.no_cache, trace_path=out.with_suffix(".trace.jsonl"))
@@ -49,16 +68,21 @@ def main(argv: list[str] | None = None) -> int:
     from reqcheck.pipeline import run
     from reqcheck.report import render_html, render_markdown
 
+    try:   # журнал относится к этому прогону, а не копится от прошлых
+        settings.trace_path.unlink(missing_ok=True)
+    except OSError:
+        pass
+
     data = run(args.input, settings,
-               progress=lambda st, msg: con.print(f"[dim]{st:>8}[/] {msg}"),
+               progress=lambda st, msg: con.print(f"[dim]{st:>8}[/] {escape(str(msg))}"),
                ask=_ask_console if args.interactive else None)
     out.write_text(render_markdown(data), encoding="utf-8")
     out.with_suffix(".json").write_text(data.model_dump_json(indent=2), encoding="utf-8")
-    con.print(f"[green]Отчёт:[/] {out}  (+ {out.with_suffix('.json').name})")
+    con.print(f"[green]Отчёт:[/] {escape(str(out))}  (+ {escape(out.with_suffix('.json').name)})")
     if not args.no_html:
         html = out.with_suffix(".html")
         html.write_text(render_html(data), encoding="utf-8")
-        con.print(f"[green]HTML:[/] {html}")
+        con.print(f"[green]HTML:[/] {escape(str(html))}")
     crit = sum(1 for f in data.findings if f.severity.value == "critical")
     con.print(f"Требований: {len(data.requirements)} · замечаний: {len(data.findings)} · критичных: {crit}")
     return 0

@@ -145,10 +145,14 @@ class GeminiLLM(BaseLLM):
         t = self._types
         if model in self._no_thinking or self.thinking in ("", "default"):
             return None
-        if self.thinking == "off":
-            return t.ThinkingConfig(thinking_budget=0)
-        lvl = _LEVELS.get(self.thinking)
-        return t.ThinkingConfig(thinking_level=lvl) if lvl else None
+        try:
+            if self.thinking == "off":
+                return t.ThinkingConfig(thinking_budget=0)
+            lvl = _LEVELS.get(self.thinking)
+            return t.ThinkingConfig(thinking_level=lvl) if lvl else None
+        except Exception:  # noqa: BLE001  старый google-genai без thinking_level — работаем без него
+            self._no_thinking.add(model)
+            return None
 
     def _generate(self, model: str, system: str, user: str, schema: Optional[type], temperature: float,
                   *, timeout: float, max_tokens: Optional[int] = None, probe: bool = False,

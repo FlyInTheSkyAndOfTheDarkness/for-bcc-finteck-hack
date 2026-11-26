@@ -58,3 +58,5 @@ reports/*.jsonl
 eval/results/*.tmp
 reports/_*
 reports/ui/
+
+.claude/settings.local.json

@@ -10,8 +10,8 @@ from reqcheck.models import Document
 SUPPORTED = {".md", ".markdown", ".txt", ".pdf", ".docx", ".html", ".htm"}
 
 
-def _parse(md: str = "", pages: list[tuple[int, str]] | None = None) -> MdParser:
-    p = MdParser()
+def _parse(md: str = "", pages: list[tuple[int, str]] | None = None, line_paragraphs: bool = False) -> MdParser:
+    p = MdParser(line_paragraphs=line_paragraphs)
     if pages is None:
         p.feed(md)
     else:
@@ -21,13 +21,28 @@ def _parse(md: str = "", pages: list[tuple[int, str]] | None = None) -> MdParser
     return p
 
 
+def _decode(raw: bytes) -> str:
+    """UTF-8 (с BOM или без), UTF-16 с BOM; иначе cp1251 — типичная кодировка русских TXT/HTML в Windows."""
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        return raw.decode("utf-16", errors="replace")
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        pass
+    try:
+        return raw.decode("cp1251")
+    except UnicodeDecodeError:
+        return raw.decode("utf-8", errors="replace")
+
+
 def load_document(path: str | Path) -> Document:
     """Прочитать PDF / DOCX / MD / TXT / HTML и вернуть Document."""
     p = Path(path)
     raw = p.read_bytes()
     ext = p.suffix.lower()
     if ext in (".md", ".markdown", ".txt"):
-        parser = _parse(raw.decode("utf-8-sig", errors="replace"))
+        # в TXT строка, законченная точкой, — конец абзаца (не склеиваем соседние требования)
+        parser = _parse(_decode(raw), line_paragraphs=ext == ".txt")
         fmt = "txt" if ext == ".txt" else "md"
     elif ext == ".pdf":
         from reqcheck.ingest.pdf import pdf_pages
@@ -39,7 +54,7 @@ def load_document(path: str | Path) -> Document:
         fmt = "docx"
     elif ext in (".html", ".htm"):
         from reqcheck.ingest.html_reader import html_to_markdown
-        parser = _parse(html_to_markdown(raw.decode("utf-8-sig", errors="replace")))
+        parser = _parse(html_to_markdown(_decode(raw)))
         fmt = "html"
     else:
         raise ValueError(f"Неподдерживаемый формат: {ext or p.name} (поддерживаются {', '.join(sorted(SUPPORTED))})")

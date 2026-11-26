@@ -42,10 +42,19 @@ class _H2M(HTMLParser):
                 self.out += ["", t, ""]
         self.mode = None
 
+    def _end_cell(self) -> None:
+        cell = " ".join("".join(self.buf).split()).replace("|", "\\|")
+        if self.row is not None:
+            self.row.append(cell)
+        self.buf, self.mode = [], None
+
     def handle_starttag(self, tag, attrs):
         if tag in _SKIP:
             self.skip += 1
         if self.skip:
+            return
+        if self.mode == "cell" and tag in _HEAD + ("p", "li", "div", "ul", "ol", "pre"):
+            self.buf.append(" ")          # блочные теги внутри ячейки таблицы — часть текста ячейки
             return
         if tag in _HEAD or tag in ("p", "li", "div"):
             self._end_block()
@@ -60,6 +69,8 @@ class _H2M(HTMLParser):
         elif tag == "tr":
             self.row = []
         elif tag in ("td", "th"):
+            if self.mode == "cell":           # предыдущая ячейка без </td>
+                self._end_cell()
             self.buf = []
             self.mode = "cell"
         elif tag == "pre":
@@ -74,6 +85,9 @@ class _H2M(HTMLParser):
             return
         if self.skip:
             return
+        if self.mode == "cell" and tag in _HEAD + ("p", "li", "div", "ul", "ol", "pre"):
+            self.buf.append(" ")
+            return
         if tag in _HEAD or tag in ("p", "li", "div"):
             self._end_block()
         elif tag in ("ul", "ol"):
@@ -82,11 +96,10 @@ class _H2M(HTMLParser):
                 self.lists.pop()
             self.out.append("")
         elif tag in ("td", "th"):
-            cell = " ".join("".join(self.buf).split()).replace("|", "\\|")
-            if self.row is not None:
-                self.row.append(cell)
-            self.buf, self.mode = [], None
+            self._end_cell()
         elif tag == "tr" and self.row is not None:
+            if self.mode == "cell":           # последняя ячейка без </td>
+                self._end_cell()
             self.out.append("| " + " | ".join(self.row) + " |")
             if self.rows_in_table == 0:
                 self.out.append("|" + " --- |" * len(self.row))

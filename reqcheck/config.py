@@ -25,6 +25,21 @@ class Settings:
     max_retries: int = 5
 
 
+def _num(kind, name: str, default):
+    """Число из переменной окружения; пустое или нечисловое значение → значение по умолчанию."""
+    raw = (os.getenv(name) or "").strip()
+    try:
+        return kind(raw) if raw else default
+    except ValueError:
+        return default
+
+
+def _key(raw: str) -> str:
+    """Ключ из окружения; заглушка из .env.example («your_…_here») считается отсутствующим ключом."""
+    k = (raw or "").strip()
+    return "" if k.lower().startswith("your_") or k.lower().endswith("_here") else k
+
+
 def load_settings(**overrides) -> Settings:
     load_dotenv(ROOT / ".env")
     load_dotenv()  # .env в текущей папке, если запускают не из корня
@@ -38,11 +53,11 @@ def load_settings(**overrides) -> Settings:
     }.get(provider, (None, None, None))
     s = Settings(
         provider=provider,
-        api_key=os.getenv(env[0], "") if env[0] else "",
+        api_key=_key(os.getenv(env[0], "")) if env[0] else "",
         model=os.getenv(env[1], "") if env[1] else "",
         base_url=os.getenv(env[2], "") if env[2] else "",
-        rpm=int(os.getenv("LLM_RPM", "8")),
-        temperature=float(os.getenv("LLM_TEMPERATURE", "0")),
+        rpm=_num(int, "LLM_RPM", 8),
+        temperature=_num(float, "LLM_TEMPERATURE", 0.0),
     )
     for k, v in overrides.items():
         if v is not None:

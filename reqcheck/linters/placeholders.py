@@ -11,10 +11,17 @@ _CHOICE = r"(да|нет|yes|no|не требуется|не применимо|
 CHOICE_RE = re.compile(rf"^\s*{_CHOICE}(\s*/\s*{_CHOICE})+\s*$", re.I)
 DASH_VALUES = {"—", "–", "-", "--", "?", "…", "...", "tbd", "todo", "n/a"}
 LABEL_DASH_RE = re.compile(r"(?P<label>[\wА-Яа-яЁё][\w\sА-Яа-яЁё/-]{0,30}):\s*[—–-](?=\s*(?:$|[.;,|]))")
+# Явные маркеры заглушки — где угодно в тексте.
 STUB_RE = re.compile(
-    r"(?<![а-яё])(заполня(ется|ются|ет)\s+\w+|будет\s+(определ|уточн|описан|добавл|заполн)\w*|"
-    r"уточнить|уточняется|требует уточнения|не заполнен\w*|в разработке|на согласовании)(?![а-яё])"
+    r"(?<![а-яё])(требует уточнения|будет\s+(определ|уточн|описан|добавл|заполн)\w*\s+"
+    r"(позже|позднее|в дальнейшем|дополнительно|отдельно))(?![а-яё])"
     r"|\b(TBD|TBA|TODO|FIXME|XXX)\b|\?\?\?|<\s*(указать|заполнить|описать)[^>]*>", re.I)
+# Фразы, которые в обычном требовании законны («Клиент заполняет анкету», «если поле не заполнено»),
+# а заглушкой являются, только когда составляют весь короткий абзац («заполняются тестировщиками»).
+STUB_SHORT_RE = re.compile(
+    r"(?<![а-яё])(заполня(ется|ются)\s+\w+|будет\s+(определ|уточн|описан|добавл|заполн)\w*|"
+    r"уточнить|уточняется|не заполнен\w*|в разработке|на согласовании)(?![а-яё])", re.I)
+STUB_SHORT_WORDS = 3
 CRITICAL_KEYS = re.compile(r"url|endpoint|адрес|метод|method|rest ?type|authorization|авторизац|"
                            r"версия|version|дата|date|swagger|контракт", re.I)
 APPROVAL_HDR = re.compile(r"согласу|подпис|утвержд|фио|approv|sign", re.I)
@@ -129,6 +136,8 @@ def check_stub_phrases(ctx: Ctx, skip: set[str]) -> list[Finding]:
         if b.id in skip or b.kind in (BlockKind.heading, BlockKind.code):
             continue
         m = STUB_RE.search(b.text)
+        if not m and len(b.text.split()) <= STUB_SHORT_WORDS:
+            m = STUB_SHORT_RE.search(b.text)
         if not m:
             continue
         section = b.section_path[-1] if b.section_path else "раздел"

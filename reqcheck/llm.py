@@ -24,6 +24,7 @@ class LLMStats:
     cache_hits: int = 0
     tokens_total: int = 0
     by_tag: dict[str, int] = field(default_factory=dict)
+    errors: int = 0          # вызовы generate_json, завершившиеся LLMError (после всех повторов)
 
 
 class LLMError(RuntimeError):
@@ -126,6 +127,7 @@ class RoutedLLM(LLMClient):
         self.stats.calls = a.calls + b.calls
         self.stats.cache_hits = a.cache_hits + b.cache_hits
         self.stats.tokens_total = a.tokens_total + b.tokens_total
+        self.stats.errors = a.errors + b.errors
         self.stats.by_tag = {k: a.by_tag.get(k, 0) + b.by_tag.get(k, 0) for k in {*a.by_tag, *b.by_tag}}
 
 
@@ -142,6 +144,8 @@ def get_client(settings: "Any") -> LLMClient:  # noqa: F821
     from reqcheck.providers import make_client
     fast = make_client(settings)
     strong_model = os.getenv("LLM_STRONG_MODEL", "").strip()
+    if strong_model.lower().startswith("gemini") and settings.provider != "gemini":
+        strong_model = ""   # из .env.example: имя Gemini-модели не годится для --provider openai/ollama/…
     if not strong_model or strong_model == getattr(fast, "model", None):
         return fast
     s2 = copy.copy(settings)

@@ -114,6 +114,15 @@ class BaseLLM(LLMClient):
 
     def generate_json(self, system: str, user: str, schema: type[T], *, tag: str,
                       temperature: Optional[float] = None) -> T:
+        try:
+            return self._generate_json(system, user, schema, tag=tag, temperature=temperature)
+        except LLMError:
+            with self._stats_lock:   # стадии ловят ошибку и продолжают; счётчик виден в паспорте/CLI
+                self.stats.errors += 1
+            raise
+
+    def _generate_json(self, system: str, user: str, schema: type[T], *, tag: str,
+                       temperature: Optional[float] = None) -> T:
         s = self.settings
         temp = s.temperature if temperature is None else temperature
         js = schema.model_json_schema()
