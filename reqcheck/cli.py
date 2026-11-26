@@ -53,7 +53,8 @@ def main(argv: list[str] | None = None) -> int:
                progress=lambda st, msg: con.print(f"[dim]{st:>8}[/] {msg}"),
                ask=_ask_console if args.interactive else None)
     out.write_text(render_markdown(data), encoding="utf-8")
-    con.print(f"[green]Отчёт:[/] {out}")
+    out.with_suffix(".json").write_text(data.model_dump_json(indent=2), encoding="utf-8")
+    con.print(f"[green]Отчёт:[/] {out}  (+ {out.with_suffix('.json').name})")
     if not args.no_html:
         html = out.with_suffix(".html")
         html.write_text(render_html(data), encoding="utf-8")
