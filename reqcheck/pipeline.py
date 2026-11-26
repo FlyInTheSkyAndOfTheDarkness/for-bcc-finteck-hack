@@ -74,7 +74,7 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
     found += review.review_requirements(doc, reqs, llm)
 
     say("set", "Проверяю набор целиком (§5.2.6, IEEE 830 §4.3, fintech)")
-    set_found, summary = setreview.review_set(doc, reqs, llm, found)
+    set_found, _ = setreview.review_set(doc, reqs, llm, found)
     found += set_found
     say("set", f"Всего кандидатов в дефекты: {len(found)}")
 
@@ -82,6 +82,9 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
     found = critic.verify(doc, reqs, _ground(doc, found), llm)
     found = _number(found)
     say("critic", f"Подтверждено: {len(found)}")
+
+    say("set", "Оцениваю набор по критериям §5.2.6 / IEEE 830")
+    summary = setreview.summarize(doc, reqs, found, llm)
 
     say("clarify", "Формулирую уточняющие вопросы")
     questions = clarify.make_questions(doc, reqs, found, llm)

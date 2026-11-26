@@ -51,6 +51,7 @@ class ScenarioCheck(BaseModel):
     explanation: str
     quote_ac: str
     quote_rule: str
+    recommendation: str = ""
 
 
 class ScenarioChecks(BaseModel):

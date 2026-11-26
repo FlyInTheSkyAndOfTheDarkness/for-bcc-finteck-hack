@@ -9,3 +9,8 @@ def review_set(doc: Document, reqs: list[Requirement], llm: LLMClient,
                prior: list[Finding]) -> tuple[list[Finding], SetSummary]:
     """ЗАГЛУШКА."""
     return [], SetSummary()
+
+
+def summarize(doc: Document, reqs: list[Requirement], findings: list[Finding], llm: LLMClient) -> SetSummary:
+    """Оценка набора по set_* / ranked / modifiable / traceable. Вызывается ПОСЛЕ critic и нумерации D-NNN. ЗАГЛУШКА."""
+    return SetSummary()
