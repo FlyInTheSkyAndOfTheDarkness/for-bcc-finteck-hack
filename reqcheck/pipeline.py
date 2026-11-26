@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 import time
 from datetime import datetime
 from pathlib import Path
@@ -71,7 +72,7 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
     say("linters", f"Находок линтеров: {len(found)}")
 
     say("review", "Проверяю каждое требование (ISO 29148 §5.2.5)")
-    found += review.review_requirements(doc, reqs, llm)
+    found += review.review_requirements(doc, reqs, llm, known=list(found))
 
     say("set", "Проверяю набор целиком (§5.2.6, IEEE 830 §4.3, fintech)")
     set_found, _ = setreview.review_set(doc, reqs, llm, found)
@@ -84,10 +85,11 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
     say("critic", f"Подтверждено: {len(found)}")
 
     say("set", "Оцениваю набор по критериям §5.2.6 / IEEE 830")
-    summary = setreview.summarize(doc, reqs, found, llm)
-
-    say("clarify", "Формулирую уточняющие вопросы")
-    questions = clarify.make_questions(doc, reqs, found, llm)
+    say("clarify", "Формулирую уточняющие вопросы (параллельно с оценкой набора)")
+    with ThreadPoolExecutor(max_workers=2) as pool:   # обе стадии зависят только от пронумерованных D-NNN
+        fut_summary = pool.submit(setreview.summarize, doc, reqs, found, llm)
+        fut_questions = pool.submit(clarify.make_questions, doc, reqs, found, llm)
+        summary, questions = fut_summary.result(), fut_questions.result()
     for i, q in enumerate(questions, 1):
         q.qid = q.qid or f"Q-{i:02d}"
     if ask and questions:
@@ -98,7 +100,7 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
             found = _number(clarify.apply_answers(doc, reqs, found, questions, llm))
 
     say("verdict", "Формирую итог")
-    verdict = clarify.decide(reqs, found, summary, llm)
+    verdict = clarify.decide(reqs, found, summary, llm, questions=questions, doc_name=doc.name)
 
     passport = RunPassport(
         doc_name=doc.name, doc_path=Path(input_path).name, doc_sha256=doc.sha256, doc_format=doc.format,
@@ -106,7 +108,10 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
         provider=llm.provider, model=llm.model, agent_version=agent_version(),
         prompt_version=prompt_version(),
         params={"temperature": settings.temperature, "cache": settings.use_cache,
-                "interactive": bool(ask)},
+                "interactive": bool(ask),
+                **({"models_used": ", ".join(f"{m} ×{n}" for m, n in sorted(llm.stats.models.items()))}
+                   if getattr(llm.stats, "models", None) else {}),
+                **({"cache_hits": llm.stats.cache_hits} if llm.stats.cache_hits else {})},
         llm_calls=llm.stats.calls, tokens_total=llm.stats.tokens_total,
         duration_s=round(time.time() - t0, 1),
     )

@@ -176,6 +176,8 @@ class BaseLLM(LLMClient):
                 self.stats.calls += 1
                 self.stats.tokens_total += int(tokens or 0)
                 self.stats.by_tag[tag] = self.stats.by_tag.get(tag, 0) + 1
+                if self.model:
+                    self.stats.models[self.model] = self.stats.models.get(self.model, 0) + 1
             try:
                 obj = schema.model_validate(json.loads(strip_fences(raw)))
             except (ValueError, ValidationError) as e:

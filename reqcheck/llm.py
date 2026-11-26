@@ -24,6 +24,7 @@ class LLMStats:
     cache_hits: int = 0
     tokens_total: int = 0
     by_tag: dict[str, int] = field(default_factory=dict)
+    models: dict[str, int] = field(default_factory=dict)  # модель → число успешных ответов
     errors: int = 0          # вызовы generate_json, завершившиеся LLMError (после всех повторов)
 
 
@@ -128,6 +129,7 @@ class RoutedLLM(LLMClient):
         self.stats.cache_hits = a.cache_hits + b.cache_hits
         self.stats.tokens_total = a.tokens_total + b.tokens_total
         self.stats.errors = a.errors + b.errors
+        self.stats.models = {k: a.models.get(k, 0) + b.models.get(k, 0) for k in {*a.models, *b.models}}
         self.stats.by_tag = {k: a.by_tag.get(k, 0) + b.by_tag.get(k, 0) for k in {*a.by_tag, *b.by_tag}}
 
 
@@ -150,5 +152,6 @@ def get_client(settings: "Any") -> LLMClient:  # noqa: F821
         return fast
     s2 = copy.copy(settings)
     s2.model = strong_model
+    s2.fallback_env = "LLM_STRONG_FALLBACK_MODELS"
     tags = [t.strip() for t in os.getenv("LLM_STRONG_TAGS", "").split(",") if t.strip()] or DEFAULT_STRONG_TAGS
     return RoutedLLM(fast, make_client(s2), tags)

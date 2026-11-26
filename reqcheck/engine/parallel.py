@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 
 def workers(default: int = 3) -> int:
     try:
-        return max(1, int(os.getenv("REQCHECK_WORKERS", default)))
+        return max(1, int(os.getenv("REQCHECK_WORKERS") or default))
     except ValueError:
         return default
 

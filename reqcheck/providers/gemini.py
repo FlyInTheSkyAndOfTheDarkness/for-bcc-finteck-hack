@@ -96,7 +96,7 @@ class GeminiLLM(BaseLLM):
                 return
             listed = self._list_models()
             if self.settings.model:
-                self._chain = [self.settings.model] + [m for m in listed if m != self.settings.model]
+                self._chain = [self.settings.model] + self._fallbacks(listed)
                 self.model = self.settings.model
             else:
                 if not listed:
@@ -104,6 +104,33 @@ class GeminiLLM(BaseLLM):
                 self._chain = listed
                 self.model = self._probe_select()
             self._ready = True
+
+    def _fallbacks(self, listed: list[str]) -> list[str]:
+        """Запасные модели для явно заданной. Порядок — из env (GEMINI_FALLBACK_MODELS для быстрой,
+        LLM_STRONG_FALLBACK_MODELS для сильной), иначе: Flash той же или более ранней версии
+        (новые Flash на бесплатном тарифе часто уходят в таймаут), затем Lite."""
+        own = self.settings.model
+        env_name = getattr(self.settings, "fallback_env", None) or "GEMINI_FALLBACK_MODELS"
+        raw = os.getenv(env_name, "").strip()
+        if raw:
+            want = [m.strip() for m in raw.split(",") if m.strip() and m.strip() != own]
+            return [m for m in want if not listed or m in listed]
+        m = _STABLE.match(own)
+        if not m:
+            return [x for x in listed if x != own]
+        ver = (int(m.group(1)), int(m.group(2) or 0))
+        older, lite = [], []
+        for x in listed:
+            mm = _STABLE.match(x)
+            if not mm or x == own:
+                continue
+            v = (int(mm.group(1)), int(mm.group(2) or 0))
+            if mm.group(3):
+                lite.append(x)
+            elif not m.group(3) and v <= ver:
+                older.append(x)
+        newer = [x for x in listed if x not in older and x not in lite and x != own]
+        return older + lite + newer
 
     def _probe_select(self) -> str:
         skipped = []
