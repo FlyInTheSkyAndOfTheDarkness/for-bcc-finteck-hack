@@ -57,3 +57,4 @@ reports/*.jsonl
 !reports/.gitkeep
 eval/results/*.tmp
 reports/_*
+reports/ui/
