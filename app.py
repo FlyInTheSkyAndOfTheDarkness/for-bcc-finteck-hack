@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import tempfile
 from datetime import datetime
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -292,8 +293,15 @@ with tabs[4]:
                        file_name="report.html", mime="text/html", key="dl_html")
     d3.download_button("⬇ .json", out.with_suffix(".json").read_text(encoding="utf-8"),
                        file_name="report.json", mime="application/json", key="dl_json")
-    st.caption(f"Файлы сохранены в {out.parent}")
-    st.markdown(md)
+    try:   # относительный путь: в демо не светим локальные папки пользователя
+        shown_dir = out.parent.resolve().relative_to(Path(__file__).resolve().parent).as_posix()
+    except ValueError:
+        shown_dir = out.parent.name
+    st.caption(f"Файлы сохранены в {shown_dir}/")
+    # якоря <a id> и <sub> нужны в файле отчёта, но Streamlit показал бы их как текст
+    preview = re.sub(r'<a id="[^"]*"></a>', "", md)
+    preview = re.sub(r"</?sub>", "_", preview)
+    st.markdown(preview)
 
 # ------------------------------------------------------------- Трассировка --
 with tabs[5]:
