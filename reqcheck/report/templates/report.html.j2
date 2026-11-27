@@ -9,7 +9,7 @@
   <p><span class="label">Как исправить:</span> {{ f.recommendation|autolink }}</p>
   {% if f.rids|length > 1 or f.scope == "set" and f.rids %}<p><span class="label">Затронутые требования:</span> {{ f.rids|refs }}</p>{% endif %}
   {% if q_for_f.get(f.fid) %}<p><span class="label">Уточняющие вопросы:</span> {{ q_for_f[f.fid]|refs }}</p>{% endif %}
-  <p class="small">уверенность {{ (f.confidence * 100)|round|int }}% · источник: {{ f.source|source }}{% if f.verified %} · подтверждено критиком{% endif %}{% if not f.grounded %} · ⚠️ цитата не найдена в документе дословно{% endif %}</p>
+  <p class="small">уверенность {{ (f.confidence * 100)|round|int }}% · источник: {{ f.source|source }}{% if f.doubtful %} · Critic сомневается{% elif f.verified %} · подтверждено критиком{% endif %}{% if not f.grounded %} · ⚠️ цитата не найдена в документе дословно{% endif %}</p>
 </article>
 {% endmacro %}
 <!doctype html>
@@ -79,6 +79,7 @@ blockquote{margin:4px 0 8px;padding:8px 12px;background:var(--quote);border-left
   <a href="#summary">5. Сводка</a>
   <a href="#questions">6. Уточняющие вопросы</a>
   <a href="#verdict">7. Итог</a>
+  {% if doubtful %}<a href="#doubtful">Приложение А: под сомнением</a>{% endif %}
   <a href="#method">Приложение: методика</a>
   <div class="tools">
     <input type="search" id="q" placeholder="Поиск по отчёту…" aria-label="Поиск">
@@ -265,6 +266,13 @@ blockquote{margin:4px 0 8px;padding:8px 12px;background:var(--quote);border-left
 <p>Первоочередных исправлений нет.</p>
 {% endif %}
 
+{% if doubtful %}
+<h2 id="doubtful">Приложение А. Замечания под сомнением</h2>
+<p>Эти замечания Critic счёл спорными или малозначимыми, но их цитаты подтверждены в тексте документа. Они не учтены в сводке и итоге; проверьте их вручную.</p>
+{% for f in doubtful %}
+{{ finding(f) }}
+{% endfor %}
+{% endif %}
 <h2 id="method">Приложение. Методика</h2>
 <p><strong>Как работает проверка.</strong> Агент проходит документ по стадиям: (1) разбор файла на адресуемые блоки с позицией в тексте; (2) выделение отдельных требований с точной цитатой и привязкой к месту; (3) детерминированные проверки по правилам (линтер: размытые слова, пассивный залог, отсутствие измеримых значений и т. п.); (4) проверка каждого требования моделью по критериям ISO/IEC/IEEE 29148:2018 §5.2.5; (5) проверка набора требований целиком по §5.2.6 и IEEE 830-1998 §4.3 (противоречия, пропуски, терминология); (6) прогон критериев приёмки против правил документа и предметный fintech-чек-лист; (7) критик: каждая цитата замечания сверяется с текстом документа, неподтверждённые замечания отбрасываются или помечаются; (8) формирование уточняющих вопросов и итогового заключения.</p>
 <p><strong>Критерии, используемые агентом:</strong></p>

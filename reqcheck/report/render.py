@@ -95,7 +95,9 @@ def _make_env(fmt: str, known: set) -> Environment:
 # ------------------------------------------------------------------ context ---
 def build_context(data: ReportData) -> dict:
     reqs = data.requirements
-    findings = data.findings
+    # замечания «под сомнением» (Critic отклонил, но цитата подтверждена) — отдельный блок, без влияния на счётчики
+    doubtful = [f for f in data.findings if getattr(f, "doubtful", False)]
+    findings = [f for f in data.findings if not getattr(f, "doubtful", False)]
     n = len(reqs)
     rid_set = {r.rid for r in reqs}
 
@@ -159,9 +161,11 @@ def build_context(data: ReportData) -> dict:
             f"Выделено требований: {n}; найдено замечаний: {len(findings)} "
             f"(критичных {n_critical}, существенных {sev_count[Severity.major]}, "
             f"незначительных {sev_count[Severity.minor]}); "
-            f"требований с замечаниями: {len(affected)} из {n}. Вывод: {verdict_phrase}.")
+            f"требований с замечаниями: {len(affected)} из {n}"
+            + (f"; ещё {len(doubtful)} замечаний под сомнением (приложение А)" if doubtful else "")
+            + f". Вывод: {verdict_phrase}.")
 
-    known = rid_set | {f.fid for f in findings if f.fid} | {q.qid for q in data.questions if q.qid}
+    known = rid_set | {f.fid for f in data.findings if f.fid} | {q.qid for q in data.questions if q.qid}
     q_for_f: dict = {}
     for q in data.questions:
         for fid in q.fids:
@@ -172,7 +176,7 @@ def build_context(data: ReportData) -> dict:
         "req_rows": req_rows,
         "clean_rows": [x for x in req_rows if x["status"] == "ok"],
         "dirty_rows": [x for x in req_rows if x["status"] != "ok"],
-        "orphan": orphan, "set_findings": set_findings,
+        "orphan": orphan, "set_findings": set_findings, "doubtful": doubtful,
         "n_findings": len(findings), "sev_count": {s.value: sev_count[s] for s in SEV_ORDER},
         "crit_rows": crit_rows, "families": families, "n_critical": n_critical,
         "affected": len(affected), "share": round(100 * len(affected) / n) if n else 0,

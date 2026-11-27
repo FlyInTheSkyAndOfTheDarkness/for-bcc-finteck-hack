@@ -53,10 +53,21 @@ Thumbs.db
 # reqcheck
 task/
 .cache/
-reports/*.jsonl
-!reports/.gitkeep
 eval/results/*.tmp
-reports/_*
 reports/ui/
 
 .claude/settings.local.json
+
+# отчёты: в git только итоговые отчёты прогона по документу кейса и абляция
+reports/*
+!reports/.gitkeep
+!reports/report.md
+!reports/report.html
+!reports/report.json
+!reports/report_pdf.md
+!reports/report_pdf.html
+!reports/report_pdf.json
+!reports/ablation/
+reports/ablation/*
+!reports/ablation/*.json
+eval/results/full.*

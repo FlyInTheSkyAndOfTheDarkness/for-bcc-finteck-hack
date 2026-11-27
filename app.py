@@ -177,10 +177,11 @@ with tabs[0]:
         st.markdown("**Что исправить в первую очередь**")
         for i, t in enumerate(v.top_fixes, 1):
             st.markdown(f"{i}. {t}")
-    cnt = {s: sum(1 for f in data.findings if f.severity == s) for s in Severity}
+    sure_f = [f for f in data.findings if not f.doubtful]
+    cnt = {s: sum(1 for f in sure_f if f.severity == s) for s in Severity}
     m = st.columns(6)
     m[0].metric("Требований", len(data.requirements))
-    m[1].metric("Замечаний", len(data.findings))
+    m[1].metric("Замечаний", len(sure_f), help=f"ещё {len(data.findings) - len(sure_f)} под сомнением")
     m[2].metric(severity_badge(Severity.critical), cnt[Severity.critical])
     m[3].metric(severity_badge(Severity.major), cnt[Severity.major])
     m[4].metric("Вызовов LLM", data.passport.llm_calls)
@@ -207,15 +208,17 @@ with tabs[2]:
     used_crit = sorted({f.criterion.value for f in data.findings})
     crit_sel = f2.multiselect("Критерий", used_crit, default=[], format_func=criterion_name, key="f_crit",
                               placeholder="все")
+    show_doubt = st.toggle("Показывать замечания под сомнением", value=False, key="f_doubt",
+                           help="Critic счёл их спорными, но цитата подтверждена в документе")
     scope_sel = f3.selectbox("Область", ["все", "requirement", "set"], key="f_scope",
                              format_func=lambda x: {"все": "все", "requirement": "отдельные требования",
                                                     "set": "набор в целом"}[x])
-    shown = [f for f in data.findings if f.severity.value in sev_sel
+    shown = [f for f in data.findings if (show_doubt or not f.doubtful) and f.severity.value in sev_sel
              and (not crit_sel or f.criterion.value in crit_sel) and (scope_sel == "все" or f.scope == scope_sel)]
     st.caption(f"Показано {len(shown)} из {len(data.findings)}")
     for f in shown:
         rids = ", ".join(f.rids)
-        with st.expander(f"{f.fid} · {severity_badge(f.severity)} · {criterion_name(f.criterion)} · {f.title}"
+        with st.expander(("❔ " if f.doubtful else "") + f"{f.fid} · {severity_badge(f.severity)} · {criterion_name(f.criterion)} · {f.title}"
                          + (f"  [{rids}]" if rids else "")):
             if f.quote:
                 st.markdown("> " + f.quote.replace("\n", "\n> "))
@@ -224,7 +227,7 @@ with tabs[2]:
             st.markdown(f"**Как исправить.** {f.recommendation}")
             st.caption(f"Критерий: {criterion_name(f.criterion)} ({criterion_ref(f.criterion)}) · "
                        f"уверенность {f.confidence:.0%} · источник: {source_name(f.source)}"
-                       + (" · проверено Critic ✓" if f.verified else ""))
+                       + (" · Critic сомневается" if f.doubtful else " · проверено Critic ✓" if f.verified else ""))
 
 # ------------------------------------------------------ Уточняющие вопросы --
 with tabs[3]:

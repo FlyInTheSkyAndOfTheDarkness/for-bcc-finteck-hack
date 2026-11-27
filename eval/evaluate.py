@@ -73,8 +73,13 @@ def findings_from_dict(data: dict) -> list[FView]:
     return out
 
 
+CONFIRMED_ONLY = False   # --confirmed-only: не считать находки «под сомнением» (doubtful)
+
+
 def load_report(path: str | Path) -> tuple[list[FView], dict]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if CONFIRMED_ONLY:
+        data["findings"] = [f for f in data.get("findings", []) if not f.get("doubtful")]
     p = data.get("passport", {}) or {}
     meta = {
         "report": str(path),
@@ -259,7 +264,11 @@ def evaluate(report_path: str | Path, gold_path: str | Path = DEFAULT_GOLD, *, j
         pairs = match_lexical(findings, gold, threshold=threshold, any_criterion=any_criterion)
         mode = f"lexical (порог {threshold:g}{', любой критерий' if any_criterion else ''})"
     res = compute_metrics(findings, gold, pairs)
-    res["meta"] = {**meta, "gold": str(gold_path), "mode": mode}
+    try:   # относительный путь: в результатах не должно быть локальных путей автора
+        gold_shown = Path(gold_path).resolve().relative_to(Path(__file__).resolve().parent.parent).as_posix()
+    except ValueError:
+        gold_shown = Path(gold_path).name
+    res["meta"] = {**meta, "gold": gold_shown, "mode": mode}
     return res
 
 
@@ -366,7 +375,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD, help="порог похожести цитат (0..100)")
     ap.add_argument("--any-criterion", action="store_true", help="не требовать совместимости критерия")
     ap.add_argument("--compare", nargs="+", metavar="REPORT", help="несколько report.json → таблица ablation")
+    ap.add_argument("--confirmed-only", action="store_true",
+                    help="оценивать только подтверждённые находки (без «под сомнением»)")
     a = ap.parse_args(argv)
+    global CONFIRMED_ONLY
+    CONFIRMED_ONLY = bool(getattr(a, "confirmed_only", False))
 
     kw = dict(judge=a.judge, threshold=a.threshold, any_criterion=a.any_criterion)
     if a.compare:

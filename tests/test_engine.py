@@ -218,9 +218,12 @@ def test_apply_verdicts_dup_and_drop():
         CriticVerdict(index=3, keep=False, severity="minor", confidence=0.3, reason="спорно"),
     ])
     out = critic.apply_verdicts(batch, res)
-    assert [f.quote for f in out] == ["bbbbbb2", "dddddd4"]
+    # дубль слит; отклонённая находка с подтверждённой цитатой не удалена, а помечена doubtful
+    assert [f.quote for f in out] == ["bbbbbb2", "cccccc3", "dddddd4"]
     assert out[0].severity == Severity.critical and out[0].verified and out[0].rids == ["R-02", "R-01"]
-    assert not out[1].verified        # защищённый линтер остался, но не подтверждён
+    assert not out[0].doubtful
+    assert out[1].doubtful and out[1].severity == Severity.minor
+    assert not out[2].verified and not out[2].doubtful   # защищённый линтер остался, но не подтверждён
 
 
 def test_verify_drops_ungrounded_unconfirmed(doc, reqs):
@@ -240,7 +243,9 @@ def test_verify_with_llm_handler(doc, reqs):
         return {"verdicts": [{"index": i, "keep": i == 0, "duplicate_of": None, "severity": "critical",
                               "confidence": 0.9, "reason": "r"} for i in range(n)]}
     out = critic.verify(doc, reqs, fs, FakeLLM({"critic": h}))
-    assert len(out) == 1 and out[0].verified and out[0].severity == Severity.critical
+    sure = [f for f in out if not f.doubtful]
+    assert len(sure) == 1 and sure[0].verified and sure[0].severity == Severity.critical
+    assert len(out) == 2 and out[1].doubtful
 
 
 # ------------------------------------------------------------ scenarios ---

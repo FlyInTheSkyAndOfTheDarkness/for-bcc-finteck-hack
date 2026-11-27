@@ -76,13 +76,23 @@ def main(argv: list[str] | None = None) -> int:
     data = run(args.input, settings,
                progress=lambda st, msg: con.print(f"[dim]{st:>8}[/] {escape(str(msg))}"),
                ask=_ask_console if args.interactive else None)
-    out.write_text(render_markdown(data), encoding="utf-8")
+    if settings.trace_path and not settings.trace_path.exists():
+        settings.trace_path.write_text("", encoding="utf-8")   # fake / всё из кэша без вызовов — пустой журнал
+    # сначала данные: если рендер упадёт, результат прогона (и затраченные вызовы LLM) не теряется
     out.with_suffix(".json").write_text(data.model_dump_json(indent=2), encoding="utf-8")
-    con.print(f"[green]Отчёт:[/] {escape(str(out))}  (+ {escape(out.with_suffix('.json').name)})")
-    if not args.no_html:
-        html = out.with_suffix(".html")
-        html.write_text(render_html(data), encoding="utf-8")
-        con.print(f"[green]HTML:[/] {escape(str(html))}")
-    crit = sum(1 for f in data.findings if f.severity.value == "critical")
-    con.print(f"Требований: {len(data.requirements)} · замечаний: {len(data.findings)} · критичных: {crit}")
+    try:
+        out.write_text(render_markdown(data), encoding="utf-8")
+        con.print(f"[green]Отчёт:[/] {escape(str(out))}  (+ {escape(out.with_suffix('.json').name)})")
+        if not args.no_html:
+            html = out.with_suffix(".html")
+            html.write_text(render_html(data), encoding="utf-8")
+            con.print(f"[green]HTML:[/] {escape(str(html))}")
+    except Exception as e:  # noqa: BLE001
+        con.print(f"[red]Не удалось сформировать отчёт: {escape(str(e))}. "
+                  f"Данные прогона сохранены в {escape(out.with_suffix('.json').name)}.[/]")
+        return 1
+    sure = [f for f in data.findings if not f.doubtful]
+    crit = sum(1 for f in sure if f.severity.value == "critical")
+    con.print(f"Требований: {len(data.requirements)} · замечаний: {len(sure)} · критичных: {crit}"
+              + (f" · под сомнением: {len(data.findings) - len(sure)}" if len(sure) < len(data.findings) else ""))
     return 0

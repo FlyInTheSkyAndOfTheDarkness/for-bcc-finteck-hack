@@ -132,6 +132,7 @@ class Finding(BaseModel):
     source: FindingSource
     confidence: float = 0.7                # 0..1
     verified: bool = False                 # прошло Critic
+    doubtful: bool = False                 # Critic сомневается: показывается отдельно, не влияет на итог
     grounded: bool = True                  # цитата найдена в документе
 
 

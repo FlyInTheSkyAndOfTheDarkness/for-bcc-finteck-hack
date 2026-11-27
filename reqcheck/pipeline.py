@@ -45,9 +45,15 @@ def _ground(doc: Document, findings: list[Finding]) -> list[Finding]:
     return findings
 
 
+def _rid_num(rids: list[str]) -> int:
+    """Минимальный номер требования для сортировки (числом: R-100 после R-99)."""
+    nums = [int(x.split("-")[-1]) for x in rids if x.split("-")[-1].isdigit()]
+    return min(nums) if nums else 10 ** 6
+
+
 def _number(findings: list[Finding]) -> list[Finding]:
-    findings.sort(key=lambda f: (SEV_ORDER[f.severity], f.scope != "requirement",
-                                 min(f.rids) if f.rids else "R-99", -f.confidence))
+    findings.sort(key=lambda f: (getattr(f, "doubtful", False), SEV_ORDER[f.severity], f.scope != "requirement",
+                                 _rid_num(f.rids), -f.confidence))
     for i, f in enumerate(findings, 1):
         f.fid = f"D-{i:03d}"
     return findings
@@ -99,8 +105,9 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
         summary, questions = SetSummary(), []
     else:
         with ThreadPoolExecutor(max_workers=2) as pool:   # обе стадии зависят только от пронумерованных D-NNN
-            fut_summary = pool.submit(setreview.summarize, doc, reqs, found, llm)
-            fut_questions = pool.submit(clarify.make_questions, doc, reqs, found, llm)
+            sure = [f for f in found if not f.doubtful]   # «под сомнением» не порождают вопросов и не влияют на итог
+            fut_summary = pool.submit(setreview.summarize, doc, reqs, sure, llm)
+            fut_questions = pool.submit(clarify.make_questions, doc, reqs, sure, llm)
             summary, questions = fut_summary.result(), fut_questions.result()
     for i, q in enumerate(questions, 1):
         q.qid = q.qid or f"Q-{i:02d}"
@@ -112,7 +119,8 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
             found = _number(clarify.apply_answers(doc, reqs, found, questions, llm))
 
     say("verdict", "Формирую итог")
-    verdict = clarify._fallback(found) if "clarify" in skip else clarify.decide(reqs, found, summary, llm, questions=questions, doc_name=doc.name)
+    sure = [f for f in found if not f.doubtful]
+    verdict = clarify._fallback(sure) if "clarify" in skip else clarify.decide(reqs, sure, summary, llm, questions=questions, doc_name=doc.name)
 
     passport = RunPassport(
         doc_name=doc.name, doc_path=Path(input_path).name, doc_sha256=doc.sha256, doc_format=doc.format,

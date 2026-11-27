@@ -4,6 +4,8 @@
    цитаты + общие R-NN → одна находка (берётся более конкретная/уверенная, rids объединяются).
 2. LLM-критик пачками ≤ 25 кандидатов, отсортированных по R-NN (дубли попадают в одну пачку).
    keep/duplicate_of/severity/confidence применяются, оценённые получают verified=True.
+   Отклонённые Critic находки с подтверждённой цитатой не удаляются, а помечаются doubtful=True
+   (отдельный блок отчёта, не влияют на итог); удаляются только дубли и неподтверждённые цитаты.
    Находки линтера с confidence ≥ 0.9 «защищены»: критик может слить их как дубль, но не выбросить.
 3. Отбрасываются находки, у которых цитата не найдена в документе И которые критик не подтвердил.
 """
@@ -223,7 +225,15 @@ def apply_verdicts(batch: list[Finding], result: Optional[CriticResult]) -> list
                 f.confidence = max(0.0, min(1.0, v.confidence))
                 f.verified = True
                 if f.confidence < MIN_KEEP_CONF and not _protected(f):
-                    continue
+                    f.doubtful = True
+            out_idx.add(i)
+        elif i not in target and f.grounded:
+            # Critic отклонил, но цитата подтверждена: замер показал, что на Lite-модели отклонённые
+            # находки в большинстве верные — не удаляем, а показываем отдельно как «под сомнением».
+            f.severity = v.severity
+            f.confidence = max(0.0, min(1.0, v.confidence))
+            f.verified = True
+            f.doubtful = True
             out_idx.add(i)
     for i, j in target.items():
         merge_into(batch[j], batch[i])
