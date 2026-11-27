@@ -1,0 +1,216 @@
+{
+  "summary": {
+    "n_gold": 5,
+    "n_findings": 7,
+    "recall": 0.6,
+    "must_find": {
+      "n": 5,
+      "found": 3,
+      "recall": 0.6
+    },
+    "by_severity": {
+      "critical": {
+        "n": 2,
+        "found": 1,
+        "recall": 0.5
+      },
+      "major": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      },
+      "minor": {
+        "n": 2,
+        "found": 1,
+        "recall": 0.5
+      }
+    },
+    "precision": 0.571,
+    "f1": 0.585,
+    "matched_findings": 4,
+    "unmatched_findings": 3,
+    "duplicates": 1,
+    "severity_agreement": 0.667,
+    "severity_over": 0,
+    "severity_under": 1,
+    "severity_confusion": {
+      "minor": {
+        "minor": 1
+      },
+      "major": {
+        "major": 1
+      },
+      "critical": {
+        "major": 1
+      }
+    },
+    "criterion_exact": 0.333,
+    "criterion_compatible": 1.0,
+    "by_criterion": {
+      "conforming": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      },
+      "correct": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      },
+      "set_consistent": {
+        "n": 2,
+        "found": 1,
+        "recall": 0.5
+      },
+      "singular": {
+        "n": 1,
+        "found": 0,
+        "recall": 0.0
+      }
+    },
+    "by_family": {
+      "conformance": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      },
+      "consistency": {
+        "n": 3,
+        "found": 2,
+        "recall": 0.667
+      },
+      "scope": {
+        "n": 1,
+        "found": 0,
+        "recall": 0.0
+      }
+    },
+    "finding_criteria": {
+      "correct": 3,
+      "set_consistent": 1,
+      "verifiable": 1,
+      "set_complete": 1,
+      "traceable": 1
+    }
+  },
+  "details": {
+    "gold": [
+      {
+        "id": "M-01",
+        "title": "Число повторов в КП-6 противоречит ЗП-8",
+        "severity": "critical",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": []
+      },
+      {
+        "id": "M-02",
+        "title": "Сохранение настройки через GET",
+        "severity": "critical",
+        "criterion": "correct",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-001",
+            "title": "GET для операции, изменяющей состояние",
+            "criterion": "correct",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 91.22,
+            "via": "quote"
+          },
+          {
+            "finding": "D-002",
+            "title": "Тело запроса у метода GET",
+            "criterion": "correct",
+            "severity": "major",
+            "evidence": 85.0,
+            "score": 77.09,
+            "via": "requirement"
+          }
+        ]
+      },
+      {
+        "id": "M-03",
+        "title": "Код 200 подписан как Created",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-003",
+            "title": "Код 200 подписан как «Created» (это код 201)",
+            "criterion": "correct",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 94.12,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "M-04",
+        "title": "Раздел «Тестирование требований» не заполнен",
+        "severity": "minor",
+        "criterion": "conforming",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-006",
+            "title": "Раздел «Тестирование требований» не заполнен (заглушка)",
+            "criterion": "set_complete",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 94.52,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "M-05",
+        "title": "ЗП-7 объединяет два разных требования",
+        "severity": "minor",
+        "criterion": "singular",
+        "must_find": true,
+        "matched_by": []
+      }
+    ],
+    "unmatched_findings": [
+      {
+        "finding": "D-004",
+        "criterion": "set_consistent",
+        "severity": "major",
+        "title": "Денежные суммы в разных единицах: «в тиынах» и «в KZT»",
+        "quote": "операции зачисления, сумма зачисления в тиынах",
+        "location": "Часть A. Новый функционал › Требования к данным (строка 55)"
+      },
+      {
+        "finding": "D-005",
+        "criterion": "verifiable",
+        "severity": "minor",
+        "title": "Неточная формулировка: «сразу»",
+        "quote": "Состояние переключателя сохраняется сразу при нажатии.",
+        "location": "Часть A. Новый функционал › Дизайн процесса UI (строка 28)"
+      },
+      {
+        "finding": "D-007",
+        "criterion": "traceable",
+        "severity": "minor",
+        "title": "Требования без идентификаторов",
+        "quote": "Клиент узнаёт о зачислении заработной платы не позднее чем через 2 минуты после зачисления средств на счёт.",
+        "location": "Часть A. Новый функционал › Цели (строка 22)"
+      }
+    ]
+  },
+  "meta": {
+    "report": "reports/ablation/mutant2_linters.json",
+    "doc_name": "Уведомление о зачислении заработной платы",
+    "provider": "fake",
+    "model": "fake-llm",
+    "agent_version": "0.1.0 (a708be9-dirty)",
+    "prompt_version": "8c3fac0f21",
+    "requirements": 44,
+    "gold": "eval/mutants/2.gold.yaml",
+    "mode": "lexical (порог 80)"
+  }
+}

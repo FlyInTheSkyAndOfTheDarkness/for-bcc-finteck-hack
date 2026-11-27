@@ -1,0 +1,1065 @@
+{
+  "summary": {
+    "n_gold": 51,
+    "n_findings": 53,
+    "recall": 0.627,
+    "must_find": {
+      "n": 20,
+      "found": 15,
+      "recall": 0.75
+    },
+    "by_severity": {
+      "critical": {
+        "n": 4,
+        "found": 4,
+        "recall": 1.0
+      },
+      "major": {
+        "n": 26,
+        "found": 16,
+        "recall": 0.615
+      },
+      "minor": {
+        "n": 21,
+        "found": 12,
+        "recall": 0.571
+      }
+    },
+    "precision": 0.792,
+    "f1": 0.7,
+    "matched_findings": 42,
+    "unmatched_findings": 11,
+    "duplicates": 10,
+    "severity_agreement": 0.719,
+    "severity_over": 4,
+    "severity_under": 5,
+    "severity_confusion": {
+      "major": {
+        "minor": 3,
+        "major": 13
+      },
+      "minor": {
+        "minor": 8,
+        "major": 4
+      },
+      "critical": {
+        "critical": 2,
+        "major": 1,
+        "minor": 1
+      }
+    },
+    "criterion_exact": 0.625,
+    "criterion_compatible": 1.0,
+    "by_criterion": {
+      "complete": {
+        "n": 10,
+        "found": 8,
+        "recall": 0.8
+      },
+      "conforming": {
+        "n": 5,
+        "found": 4,
+        "recall": 0.8
+      },
+      "correct": {
+        "n": 2,
+        "found": 1,
+        "recall": 0.5
+      },
+      "set_complete": {
+        "n": 6,
+        "found": 1,
+        "recall": 0.167
+      },
+      "set_consistent": {
+        "n": 16,
+        "found": 13,
+        "recall": 0.812
+      },
+      "singular": {
+        "n": 1,
+        "found": 0,
+        "recall": 0.0
+      },
+      "traceable": {
+        "n": 2,
+        "found": 0,
+        "recall": 0.0
+      },
+      "unambiguous": {
+        "n": 7,
+        "found": 4,
+        "recall": 0.571
+      },
+      "verifiable": {
+        "n": 2,
+        "found": 1,
+        "recall": 0.5
+      }
+    },
+    "by_family": {
+      "ambiguity": {
+        "n": 9,
+        "found": 5,
+        "recall": 0.556
+      },
+      "completeness": {
+        "n": 16,
+        "found": 9,
+        "recall": 0.562
+      },
+      "conformance": {
+        "n": 7,
+        "found": 4,
+        "recall": 0.571
+      },
+      "consistency": {
+        "n": 18,
+        "found": 14,
+        "recall": 0.778
+      },
+      "scope": {
+        "n": 1,
+        "found": 0,
+        "recall": 0.0
+      }
+    },
+    "finding_criteria": {
+      "complete": 15,
+      "unambiguous": 11,
+      "set_consistent": 7,
+      "set_complete": 6,
+      "correct": 5,
+      "conforming": 3,
+      "verifiable": 1,
+      "appropriate": 1,
+      "set_validatable": 1,
+      "singular": 1,
+      "traceable": 1,
+      "modifiable": 1
+    }
+  },
+  "details": {
+    "gold": [
+      {
+        "id": "G-01",
+        "title": "Критерий приёмки о переходе месяца противоречит правилу Ф-2",
+        "severity": "critical",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-001",
+            "title": "Ошибка в месяце счётчика в критерии приёмки",
+            "criterion": "correct",
+            "severity": "critical",
+            "evidence": 100.0,
+            "score": 87.38,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-02",
+        "title": "Ф-4 допускает второй push в месяце вопреки лимиту Ф-3",
+        "severity": "critical",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-002",
+            "title": "Лимит push-уведомлений противоречит правилу изменения порога",
+            "criterion": "set_consistent",
+            "severity": "critical",
+            "evidence": 100.0,
+            "score": 89.75,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-03",
+        "title": "Не описано снижение порога ниже уже накопленной суммы",
+        "severity": "major",
+        "criterion": "complete",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-005",
+            "title": "Не определено поведение при изменении порога, если текущие расходы выше или равны новому значению",
+            "criterion": "complete",
+            "severity": "major",
+            "evidence": 85.0,
+            "score": 81.18,
+            "via": "requirement"
+          }
+        ]
+      },
+      {
+        "id": "G-04",
+        "title": "Не определено, что такое «проведённая покупка» (авторизация или клиринг)",
+        "severity": "major",
+        "criterion": "unambiguous",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-004",
+            "title": "Неоднозначность отнесения покупки к месяцу при расхождении даты совершения и проводки",
+            "criterion": "unambiguous",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 86.07,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-05",
+        "title": "Цель «в момент покупки» не согласована с NFR и учётом проведённых покупок",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": []
+      },
+      {
+        "id": "G-06",
+        "title": "Часовой пояс «в Алматы» и граница месяца заданы неоднозначно",
+        "severity": "major",
+        "criterion": "unambiguous",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-027",
+            "title": "Не определен порядок сброса накоплений в начале нового периода",
+            "criterion": "complete",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 82.53,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-07",
+        "title": "Не описаны крайние случаи возврата",
+        "severity": "major",
+        "criterion": "complete",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-025",
+            "title": "Не определено поведение при сумме возвратов больше расходов периода",
+            "criterion": "complete",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 86.41,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-08",
+        "title": "Перечень исключаемых операций неполон и не формализован",
+        "severity": "major",
+        "criterion": "complete",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-026",
+            "title": "Не исчерпывающий перечень учитываемых и исключаемых типов операций",
+            "criterion": "complete",
+            "severity": "major",
+            "evidence": 97.4,
+            "score": 86.27,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-09",
+        "title": "Не описан учёт покупок в иностранной валюте",
+        "severity": "major",
+        "criterion": "complete",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-10",
+        "title": "Неясно, к какому месяцу относится лимит push и сброс счётчика",
+        "severity": "major",
+        "criterion": "unambiguous",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-11",
+        "title": "Не описано включение уведомления, когда сумма уже выше порога",
+        "severity": "major",
+        "criterion": "complete",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-050",
+            "title": "Не определено поведение накоплений при включении и выключении уведомлений",
+            "criterion": "complete",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 91.69,
+            "via": "quote"
+          },
+          {
+            "finding": "D-028",
+            "title": "Не определено поведение при возврате после отправки push",
+            "criterion": "complete",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 87.56,
+            "via": "quote"
+          },
+          {
+            "finding": "D-024",
+            "title": "Ветки правил без критериев приёмки: 6",
+            "criterion": "set_validatable",
+            "severity": "major",
+            "evidence": 92.3,
+            "score": 74.99,
+            "via": "explanation"
+          }
+        ]
+      },
+      {
+        "id": "G-12",
+        "title": "Не описан сбой отправки push и смысл «признака отправки»",
+        "severity": "major",
+        "criterion": "complete",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-007",
+            "title": "Не указаны типы данных и форматы для полей записи",
+            "criterion": "complete",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 84.98,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-13",
+        "title": "Не описан жизненный цикл карты (неактивна, перевыпуск, закрытие)",
+        "severity": "major",
+        "criterion": "complete",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-023",
+            "title": "Не определено поведение при перевыпуске или блокировке карты",
+            "criterion": "complete",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 88.44,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-14",
+        "title": "«Держатель» и «владелец» карты употребляются как синонимы",
+        "severity": "minor",
+        "criterion": "set_consistent",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-036",
+            "title": "Неопределён формат сессии владельца карты",
+            "criterion": "unambiguous",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 81.7,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-15",
+        "title": "Составные требования Ф-1, Ф-2, Ф-3 (несколько правил в одном пункте)",
+        "severity": "minor",
+        "criterion": "singular",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-16",
+        "title": "Набор нефункциональных требований неполон",
+        "severity": "major",
+        "criterion": "set_complete",
+        "must_find": true,
+        "matched_by": []
+      },
+      {
+        "id": "G-17",
+        "title": "NFR «в течение минуты» непроверяемо в текущей формулировке",
+        "severity": "minor",
+        "criterion": "verifiable",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-006",
+            "title": "Срок передачи push не содержит перцентиля и точного указания сервиса",
+            "criterion": "verifiable",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 87.8,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-18",
+        "title": "Суммы покупок хранятся в тиынах, а порог — в тенге",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-022",
+            "title": "Денежные суммы в разных единицах: «в тиынах» и «в тенге»",
+            "criterion": "set_consistent",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 87.72,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-19",
+        "title": "Требования к данным не покрывают правила и API",
+        "severity": "major",
+        "criterion": "set_complete",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-20",
+        "title": "В части B нет метода чтения настроек и суммы за месяц",
+        "severity": "critical",
+        "criterion": "set_complete",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-049",
+            "title": "Отсутствуют требования к журналу аудита изменения настроек",
+            "criterion": "set_complete",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 86.54,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-21",
+        "title": "Интеграция с карточным процессингом не специфицирована",
+        "severity": "major",
+        "criterion": "set_complete",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-22",
+        "title": "Идемпотентность обработки событий сформулирована расплывчато",
+        "severity": "major",
+        "criterion": "unambiguous",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-23",
+        "title": "Раздел «Тестирование требований» не заполнен",
+        "severity": "minor",
+        "criterion": "conforming",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-034",
+            "title": "Раздел «Тестирование требований» не заполнен (заглушка)",
+            "criterion": "set_complete",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 89.05,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-24",
+        "title": "Критерии приёмки покрывают лишь малую часть правил",
+        "severity": "major",
+        "criterion": "set_complete",
+        "must_find": true,
+        "matched_by": []
+      },
+      {
+        "id": "G-25",
+        "title": "В критериях приёмки неполные предусловия",
+        "severity": "minor",
+        "criterion": "verifiable",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-26",
+        "title": "Не заполнены версия и дата документа",
+        "severity": "minor",
+        "criterion": "conforming",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-053",
+            "title": "Не указаны версия и дата документа",
+            "criterion": "modifiable",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 90.37,
+            "via": "quote"
+          },
+          {
+            "finding": "D-051",
+            "title": "Не выбраны значения «Да / Нет» в таблице «Ревью требований»",
+            "criterion": "conforming",
+            "severity": "minor",
+            "evidence": 85.0,
+            "score": 75.7,
+            "via": "requirement"
+          }
+        ]
+      },
+      {
+        "id": "G-27",
+        "title": "Чек-лист ревью не заполнен",
+        "severity": "minor",
+        "criterion": "conforming",
+        "must_find": true,
+        "matched_by": []
+      },
+      {
+        "id": "G-28",
+        "title": "Блок согласующих пуст",
+        "severity": "major",
+        "criterion": "conforming",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-052",
+            "title": "Не заполнен лист согласования «Блок согласующих»",
+            "criterion": "conforming",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 87.87,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-29",
+        "title": "Description метода противоречит сам себе (сохранение vs чтение)",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-035",
+            "title": "Описание метода совмещает запись и чтение",
+            "criterion": "set_consistent",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 89.74,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-30",
+        "title": "Изменение состояния через GET",
+        "severity": "critical",
+        "criterion": "correct",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-008",
+            "title": "GET для операции, изменяющей состояние",
+            "criterion": "correct",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 87.93,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-31",
+        "title": "Идентификатор карты и параметры передаются в URL",
+        "severity": "major",
+        "criterion": "correct",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-32",
+        "title": "Не заполнены поля паспорта API (Prod URL, Swagger, проект)",
+        "severity": "minor",
+        "criterion": "conforming",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-009",
+            "title": "Не заполнены поля таблицы «Общие параметры»",
+            "criterion": "set_complete",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 81.17,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-33",
+        "title": "Content-Type application/json при отсутствии тела",
+        "severity": "minor",
+        "criterion": "set_consistent",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-042",
+            "title": "Указан Content-Type, но тело запроса не используется",
+            "criterion": "set_consistent",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 88.25,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-34",
+        "title": "API не проверяет активность и валюту карты из Ф-1",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": []
+      },
+      {
+        "id": "G-35",
+        "title": "«Вернуть прежнее состояние» не соответствует примеру ответа ERROR",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-010",
+            "title": "Неоднозначен формат возврата при ошибке сохранения",
+            "criterion": "unambiguous",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 84.63,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-36",
+        "title": "Ошибка валидации возвращается как 200 ERROR и одновременно как 400",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-019",
+            "title": "Пример ответа 200 содержит ошибку",
+            "criterion": "set_consistent",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 88.56,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-37",
+        "title": "Типы полей запроса и ответа не совпадают (integer vs string)",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-013",
+            "title": "Параметр enabled: integer в запросе, string в ответе",
+            "criterion": "set_consistent",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 88.31,
+            "via": "quote"
+          },
+          {
+            "finding": "D-012",
+            "title": "Параметр amount: integer в запросе, string в ответе",
+            "criterion": "set_consistent",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 88.27,
+            "via": "quote"
+          },
+          {
+            "finding": "D-044",
+            "title": "Формат строкового значения суммы не задан",
+            "criterion": "unambiguous",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 83.55,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-38",
+        "title": "Статус 200 подписан как «Created»",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-017",
+            "title": "Код 200 подписан как «Created» (это код 201)",
+            "criterion": "correct",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 86.95,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-39",
+        "title": "Раздел 403 описывает возврат 404; 404 нет в перечне статусов",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-021",
+            "title": "Код 404 упоминается, но не описан",
+            "criterion": "set_complete",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 84.64,
+            "via": "quote"
+          },
+          {
+            "finding": "D-046",
+            "title": "Наличие артефакта в конце текста требования",
+            "criterion": "correct",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 81.74,
+            "via": "quote"
+          },
+          {
+            "finding": "D-045",
+            "title": "У кодов ответов не задано тело ответа",
+            "criterion": "complete",
+            "severity": "minor",
+            "evidence": 85.0,
+            "score": 74.9,
+            "via": "requirement"
+          }
+        ]
+      },
+      {
+        "id": "G-40",
+        "title": "Правило успешности и перечень статусов не согласованы",
+        "severity": "minor",
+        "criterion": "set_consistent",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-043",
+            "title": "Неточная формулировка: «и далее»",
+            "criterion": "unambiguous",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 83.14,
+            "via": "quote"
+          },
+          {
+            "finding": "D-020",
+            "title": "Коды ошибок размещены в разделе успешных ответов",
+            "criterion": "correct",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 80.35,
+            "via": "quote"
+          },
+          {
+            "finding": "D-014",
+            "title": "Термин «результат» смешивает HTTP-статусы и поле ответа",
+            "criterion": "unambiguous",
+            "severity": "major",
+            "evidence": 90.5,
+            "score": 76.56,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-41",
+        "title": "Структура ответов об ошибке разнородна, нет кодов ошибок",
+        "severity": "minor",
+        "criterion": "set_consistent",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-016",
+            "title": "Для ошибки не определен машиночитаемый код",
+            "criterion": "complete",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 85.53,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-42",
+        "title": "Правило «обе границы включены» без указания границ",
+        "severity": "minor",
+        "criterion": "unambiguous",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-43",
+        "title": "Сумма обязательна даже при выключении уведомления",
+        "severity": "minor",
+        "criterion": "complete",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-44",
+        "title": "Компоненты названы по-разному в разных разделах",
+        "severity": "minor",
+        "criterion": "set_consistent",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-45",
+        "title": "BPMN-схема без ветвлений",
+        "severity": "minor",
+        "criterion": "complete",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-003",
+            "title": "Ветка процесса при повторном достижении порога за месяц не описана",
+            "criterion": "complete",
+            "severity": "major",
+            "evidence": 85.0,
+            "score": 79.32,
+            "via": "requirement"
+          }
+        ]
+      },
+      {
+        "id": "G-46",
+        "title": "В sequence неясно, какая «сумма» уходит в push, и нет получателя",
+        "severity": "minor",
+        "criterion": "unambiguous",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-032",
+            "title": "В сценарии диаграммы последовательности не указана ветка при недостижении порога",
+            "criterion": "complete",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 84.33,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-47",
+        "title": "Дизайн UI не детализирован",
+        "severity": "minor",
+        "criterion": "complete",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-030",
+            "title": "Текст и условия сообщения об ошибке ввода не указаны",
+            "criterion": "complete",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 85.31,
+            "via": "quote"
+          },
+          {
+            "finding": "D-031",
+            "title": "Период отображаемой суммы на экране не уточнен",
+            "criterion": "unambiguous",
+            "severity": "minor",
+            "evidence": 85.0,
+            "score": 73.75,
+            "via": "requirement"
+          }
+        ]
+      },
+      {
+        "id": "G-48",
+        "title": "Цель неизмерима, «личный бюджет» не совпадает с порогом по карте",
+        "severity": "minor",
+        "criterion": "unambiguous",
+        "must_find": false,
+        "matched_by": [
+          {
+            "finding": "D-029",
+            "title": "Термин «личный бюджет» не согласован с терминологией требований",
+            "criterion": "unambiguous",
+            "severity": "minor",
+            "evidence": 85.7,
+            "score": 77.8,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "G-49",
+        "title": "Общие сведения заполнены заглушками (роли, JIRA)",
+        "severity": "minor",
+        "criterion": "traceable",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-50",
+        "title": "Нет трассировки критериев приёмки к требованиям и приоритетов",
+        "severity": "minor",
+        "criterion": "traceable",
+        "must_find": false,
+        "matched_by": []
+      },
+      {
+        "id": "G-51",
+        "title": "Не предусмотрены откат и скрытие функционала",
+        "severity": "minor",
+        "criterion": "set_complete",
+        "must_find": false,
+        "matched_by": []
+      }
+    ],
+    "unmatched_findings": [
+      {
+        "finding": "D-011",
+        "criterion": "appropriate",
+        "severity": "major",
+        "title": "Чувствительные данные в строке запроса (query)",
+        "quote": "cardId | string | 1–64 | Да | Карта клиента | Идентификатор карты | card_id",
+        "location": "Часть B. REST API › Параметры запроса › Query-параметры (строка 142)"
+      },
+      {
+        "finding": "D-015",
+        "criterion": "set_complete",
+        "severity": "major",
+        "title": "Код 201 упоминается, но не описан",
+        "quote": "Если результат 200 или 201 — успешный.",
+        "location": "Часть B. REST API › Ответ (строка 151)"
+      },
+      {
+        "finding": "D-018",
+        "criterion": "complete",
+        "severity": "major",
+        "title": "Для статуса 200 не указана структура тела ответа (+1 аналогичн.)",
+        "quote": "200. Ответ в случае успешного выполнения метода.",
+        "location": "Часть B. REST API › Статусы (строки 162–163)"
+      },
+      {
+        "finding": "D-033",
+        "criterion": "singular",
+        "severity": "minor",
+        "title": "В одном пункте интеграции объединены два разных правила",
+        "quote": "Приложение читает и сохраняет настройки через дочерний документ «Уведомление о расходах по карте — REST API». Повторная доставка одного события процессинга сохраняет исходный итог.",
+        "location": "Часть A. Новый функционал › Требования к интеграции (строка 52)"
+      },
+      {
+        "finding": "D-037",
+        "criterion": "unambiguous",
+        "severity": "minor",
+        "title": "Правила проверки суммы и переключателя не детализированы",
+        "quote": "3. Проверить сумму и переключатель.",
+        "location": "Часть B. REST API › Логика работы метода (строка 119)"
+      },
+      {
+        "finding": "D-038",
+        "criterion": "complete",
+        "severity": "minor",
+        "title": "В описании процесса отсутствует обработка ошибок и триггер",
+        "quote": "Приложение → AlertsController → хранилище настроек → AlertsController → приложение.",
+        "location": "Часть B. REST API › Схема (строки 129–131)"
+      },
+      {
+        "finding": "D-039",
+        "criterion": "unambiguous",
+        "severity": "minor",
+        "title": "Не задан допустимый набор символов для идентификатора карты",
+        "quote": "cardId | string | 1–64",
+        "location": "Часть B. REST API › Параметры запроса › Query-параметры (строка 142)"
+      },
+      {
+        "finding": "D-040",
+        "criterion": "unambiguous",
+        "severity": "minor",
+        "title": "Некорректное описание размера для целочисленного типа",
+        "quote": "enabled | integer | 1 знак",
+        "location": "Часть B. REST API › Параметры запроса › Query-параметры (строка 144)"
+      },
+      {
+        "finding": "D-041",
+        "criterion": "conforming",
+        "severity": "minor",
+        "title": "Лишний символ в заголовке Content-Type",
+        "quote": "Content-Type: application/json .",
+        "location": "Часть B. REST API › Параметры запроса › Request body (строка 147)"
+      },
+      {
+        "finding": "D-047",
+        "criterion": "traceable",
+        "severity": "minor",
+        "title": "Требования без идентификаторов",
+        "quote": "Дать клиенту возможность узнать о достижении личного бюджета в момент покупки.",
+        "location": "Часть A. Новый функционал › Цели (строка 23)"
+      },
+      {
+        "finding": "D-048",
+        "criterion": "set_complete",
+        "severity": "minor",
+        "title": "Не указано требование к согласию на обработку данных для уведомлений",
+        "quote": "Дать клиенту возможность узнать о достижении личного бюджета в момент покупки.",
+        "location": "Часть A. Новый функционал › Цели (строка 23)"
+      }
+    ]
+  },
+  "meta": {
+    "report": "reports/tune/cold_main.json",
+    "doc_name": "Уведомление о расходах по карте",
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "agent_version": "0.1.0 (ce3c4ac-dirty)",
+    "prompt_version": "2507d2ac63",
+    "requirements": 48,
+    "gold": "C:\\Users\\Lenovo\\Desktop\\code\\for bcc hack\\eval\\gold.yaml",
+    "mode": "lexical (порог 80)"
+  }
+}

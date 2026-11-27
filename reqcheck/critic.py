@@ -118,16 +118,34 @@ def _protected(f: Finding) -> bool:
     return f.source == FindingSource.linter and f.confidence >= PROTECT_CONF and f.grounded
 
 
-def render_candidates(batch: Sequence[Finding]) -> str:
+RELATED_PER_CANDIDATE = 2
+_GAP = re.compile(r"не\s+(?:указан|задан|определ|описан|приведен|перечислен|заполнен)|отсутству|нет\s", re.I)
+
+
+def render_candidates(batch: Sequence[Finding], reqs: Optional[Sequence[Requirement]] = None,
+                      index: Optional[TermIndex] = None) -> str:
+    """Кандидаты для критика. К находкам-«пропускам» добавляются связанные по терминам
+    требования: быстрая модель надёжнее замечает, что «пропуск» закрыт в другом месте,
+    если улика лежит рядом с кандидатом."""
+    rmap = {r.rid: r for r in reqs or []}
     out = []
     for i, f in enumerate(batch):
-        out.append(
+        block = (
             f"[#{i}] источник: {f.source.value} | критерий: {f.criterion.value} | критичность: "
             f"{f.severity.value} | уверенность: {f.confidence:.2f} | цитата найдена: "
             f"{'да' if f.grounded else 'нет'} | R: {', '.join(f.rids) or '—'}\n"
             f"Заголовок: {f.title}\nЦитата: «{f.quote}»\n"
             f"Пояснение: {' '.join(f.explanation.split())}\n"
             f"Рекомендация: {' '.join(f.recommendation.split())}")
+        if index is not None and rmap and f.rids and _GAP.search(f.title + " " + f.explanation[:200]):
+            rel: list[str] = []
+            for rid in f.rids[:2]:
+                rel += index.related(rid, RELATED_PER_CANDIDATE, exclude=set(f.rids) | set(rel))
+            rel = [x for x in rel if x in rmap][:RELATED_PER_CANDIDATE]
+            if rel:
+                block += "\nПроверь, не закрыт ли пропуск здесь: " + " ".join(
+                    f"[{x}] «{' '.join(rmap[x].quote.split())[:220]}»" for x in rel)
+        out.append(block)
     return "\n".join(out)
 
 
@@ -161,7 +179,7 @@ def _judge(doc: Document, reqs: Sequence[Requirement], llm: LLMClient,
            batch: Sequence[Finding]) -> Optional[CriticResult]:
     ref = critic_requirements(reqs, batch)
     return call(llm, "critic", CriticResult, "critic", doc_name=doc.name,
-                candidates=render_candidates(batch), requirements=req_blocks(ref))
+                candidates=render_candidates(batch, reqs, TermIndex(reqs)), requirements=req_blocks(ref))
 
 
 def apply_verdicts(batch: list[Finding], result: Optional[CriticResult]) -> list[Finding]:

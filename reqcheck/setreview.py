@@ -16,7 +16,7 @@ from typing import Optional, Sequence
 from reqcheck.engine import parallel
 from reqcheck.engine.prompting import (SET_CRITERIA, call, criteria_text, draft_to_finding,
                                        fintech_checks, fintech_tag, finding_lines, known_lines,
-                                       outline, repair_quote, req_blocks, req_short, rid_map,
+                                       norm, outline, repair_quote, req_blocks, req_short, rid_map,
                                        scope_criteria, stats)
 from reqcheck.engine.terms import TermIndex, candidate_groups, render_groups
 from reqcheck.grounding import find_quote
@@ -77,6 +77,12 @@ def contradiction_jobs(reqs: Sequence[Requirement], max_groups: int = 12,
         return [(groups, body)]
     index = TermIndex(reqs)
     jobs = []
+    # пары «ограничение ↔ условие» — отдельным коротким вызовом: только участники пар
+    pairs = [g for g in groups if g.note]
+    groups = [g for g in groups if not g.note]
+    if pairs:
+        want_p = {r for g in pairs for r in g.rids}
+        jobs.append((pairs, [r for r in reqs if r.rid in want_p]))
     for i in range(0, len(groups), per_call):
         chunk = groups[i:i + per_call]
         want: list[str] = []
@@ -102,7 +108,55 @@ def _contradictions_call(doc: Document, reqs: Sequence[Requirement], llm: LLMCli
                                       xref=["§4.3.4"]),
                doc_name=doc.name, requirements=req_blocks(shown), candidates=render_groups(groups),
                known_findings=known_lines(kn))
-    return [draft_to_finding(doc, reqs, d, source=FindingSource.llm_set, scope="set") for d in out.findings]
+    return [fix_rid_mentions(draft_to_finding(doc, reqs, unwrap_quote(d), source=FindingSource.llm_set,
+                                              scope="set"), reqs)
+            for d in out.findings]
+
+
+def unwrap_quote(d):
+    """Модель иногда оборачивает цитату в «…» или кавычки — снять обёртку до привязки к тексту."""
+    q = (d.quote or "").strip()
+    while len(q) > 2 and q[0] in "«\"'“" and q[-1] in "»\"'”":
+        q = q[1:-1].strip()
+    d.quote = q
+    return d
+
+
+_CITED = re.compile(r"«([^«»]{12,})»")
+_RID = re.compile(r"R-\d+")
+
+
+def fix_rid_mentions(f: Finding, reqs: Sequence[Requirement]) -> Finding:
+    """Цитаты второй стороны в explanation: R-NN перед цитатой сверяется с текстом требования.
+
+    Если «цитата» дословно есть ровно в одном требовании, оно добавляется в rids, а ближайшее
+    упоминание R-NN перед цитатой, указывающее на требование без этой цитаты, исправляется.
+    """
+    text = f.explanation or ""
+    if not text:
+        return f
+    nq = {r.rid: norm(r.quote) for r in reqs}
+    out, pos = [], 0
+    for m in _CITED.finditer(text):
+        frag = norm(m.group(1))
+        if len(frag) < 10:
+            continue
+        owners = [rid for rid, q in nq.items() if frag in q]
+        if len(owners) != 1:
+            continue
+        own = owners[0]
+        if own not in f.rids:
+            f.rids.append(own)
+        window_start = max(pos, m.start() - 80)
+        mentions = list(_RID.finditer(text, window_start, m.start()))
+        if mentions:
+            last = mentions[-1]
+            if last.group(0) != own and last.group(0) in nq and frag not in nq[last.group(0)]:
+                out.append(text[pos:last.start()] + own)
+                pos = last.end()
+    if out:
+        f.explanation = "".join(out) + text[pos:]
+    return f
 
 
 # ----------------------------------------------------------------- scenarios ---
@@ -259,7 +313,7 @@ def _completeness(doc: Document, reqs: Sequence[Requirement], llm: LLMClient,
                known_findings=known_lines(prior))
     res = []
     for d in out.findings:
-        f = draft_to_finding(doc, reqs, d, source=FindingSource.llm_set, scope="set")
+        f = draft_to_finding(doc, reqs, unwrap_quote(d), source=FindingSource.llm_set, scope="set")
         if fintech_tag(f):
             f.source = FindingSource.fintech
         res.append(f)

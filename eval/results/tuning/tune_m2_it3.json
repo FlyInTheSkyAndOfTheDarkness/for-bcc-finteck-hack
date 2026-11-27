@@ -1,0 +1,451 @@
+{
+  "summary": {
+    "n_gold": 5,
+    "n_findings": 35,
+    "recall": 1.0,
+    "must_find": {
+      "n": 5,
+      "found": 5,
+      "recall": 1.0
+    },
+    "by_severity": {
+      "critical": {
+        "n": 2,
+        "found": 2,
+        "recall": 1.0
+      },
+      "major": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      },
+      "minor": {
+        "n": 2,
+        "found": 2,
+        "recall": 1.0
+      }
+    },
+    "precision": 0.229,
+    "f1": 0.373,
+    "matched_findings": 8,
+    "unmatched_findings": 27,
+    "duplicates": 3,
+    "severity_agreement": 0.8,
+    "severity_over": 0,
+    "severity_under": 1,
+    "severity_confusion": {
+      "minor": {
+        "minor": 2
+      },
+      "major": {
+        "major": 1
+      },
+      "critical": {
+        "major": 1,
+        "critical": 1
+      }
+    },
+    "criterion_exact": 0.6,
+    "criterion_compatible": 1.0,
+    "by_criterion": {
+      "conforming": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      },
+      "correct": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      },
+      "set_consistent": {
+        "n": 2,
+        "found": 2,
+        "recall": 1.0
+      },
+      "singular": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      }
+    },
+    "by_family": {
+      "conformance": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      },
+      "consistency": {
+        "n": 3,
+        "found": 3,
+        "recall": 1.0
+      },
+      "scope": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      }
+    },
+    "finding_criteria": {
+      "complete": 11,
+      "unambiguous": 9,
+      "set_complete": 5,
+      "set_consistent": 3,
+      "correct": 3,
+      "set_validatable": 1,
+      "verifiable": 1,
+      "singular": 1,
+      "traceable": 1
+    }
+  },
+  "details": {
+    "gold": [
+      {
+        "id": "M-01",
+        "title": "Число повторов в КП-6 противоречит ЗП-8",
+        "severity": "critical",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-002",
+            "title": "Ожидаемый результат критерия приёмки R-29 (КП-6) расходится с правилом правил",
+            "criterion": "set_consistent",
+            "severity": "critical",
+            "evidence": 100.0,
+            "score": 89.89,
+            "via": "quote"
+          },
+          {
+            "finding": "D-001",
+            "title": "Количество повторных попыток отправки расходится с критерием приёмки",
+            "criterion": "set_consistent",
+            "severity": "critical",
+            "evidence": 100.0,
+            "score": 85.0,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "M-02",
+        "title": "Сохранение настройки через GET",
+        "severity": "critical",
+        "criterion": "correct",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-014",
+            "title": "GET для операции, изменяющей состояние",
+            "criterion": "correct",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 91.22,
+            "via": "quote"
+          },
+          {
+            "finding": "D-015",
+            "title": "Тело запроса у метода GET",
+            "criterion": "correct",
+            "severity": "major",
+            "evidence": 85.0,
+            "score": 77.09,
+            "via": "requirement"
+          }
+        ]
+      },
+      {
+        "id": "M-03",
+        "title": "Код 200 подписан как Created",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-018",
+            "title": "Код 200 подписан как «Created» (это код 201)",
+            "criterion": "correct",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 94.12,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "M-04",
+        "title": "Раздел «Тестирование требований» не заполнен",
+        "severity": "minor",
+        "criterion": "conforming",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-032",
+            "title": "Раздел «Тестирование требований» не заполнен (заглушка)",
+            "criterion": "set_complete",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 94.52,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "M-05",
+        "title": "ЗП-7 объединяет два разных требования",
+        "severity": "minor",
+        "criterion": "singular",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-027",
+            "title": "Пункт R-12 объединяет два разных обязательства",
+            "criterion": "singular",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 88.09,
+            "via": "quote"
+          },
+          {
+            "finding": "D-026",
+            "title": "Период отображения истории в R-12 не конкретизирован",
+            "criterion": "unambiguous",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 78.97,
+            "via": "quote"
+          }
+        ]
+      }
+    ],
+    "unmatched_findings": [
+      {
+        "finding": "D-003",
+        "criterion": "complete",
+        "severity": "major",
+        "title": "Не определены ветки ошибок и отказов в процессе отправки",
+        "quote": "отправка push → завершение.",
+        "location": "Часть A. Новый функционал › Требования к изменениям › BPMN схема процесса (строка 33)"
+      },
+      {
+        "finding": "D-004",
+        "criterion": "unambiguous",
+        "severity": "major",
+        "title": "Не определено поведение переключателя при наличии нескольких счетов",
+        "quote": "Клиент с активным текущим счётом в KZT включает и выключает уведомление о зачислении заработной платы переключателем в приложении.",
+        "location": "Часть A. Новый функционал › Требования к изменениям › Функциональные требования (строка 36)"
+      },
+      {
+        "finding": "D-005",
+        "criterion": "complete",
+        "severity": "major",
+        "title": "Не определено начальное состояние уведомления для существующих клиентов",
+        "quote": "Для клиента, который ещё не менял настройку, уведомление о зачислении заработной платы включено.",
+        "location": "Часть A. Новый функционал › Требования к изменениям › Функциональные требования (строка 37)"
+      },
+      {
+        "finding": "D-006",
+        "criterion": "unambiguous",
+        "severity": "major",
+        "title": "Не определено условие проверки КНП и зарплатного реестра",
+        "quote": "с кодом назначения платежа (КНП) 311 по зарплатному реестру работодателя.",
+        "location": "Часть A. Новый функционал › Требования к изменениям › Функциональные требования (строка 38)"
+      },
+      {
+        "finding": "D-007",
+        "criterion": "complete",
+        "severity": "major",
+        "title": "Не задано правило округления суммы зачисления",
+        "quote": "Сумма в тексте push равна сумме зачисления в тенге с двумя знаками после запятой",
+        "location": "Часть A. Новый функционал › Требования к изменениям › Функциональные требования (строка 40)"
+      },
+      {
+        "finding": "D-008",
+        "criterion": "complete",
+        "severity": "major",
+        "title": "Не определен порядок отправки при нескольких зачислениях",
+        "quote": "Если поступило несколько зачислений заработной платы, push отправляется по каждому зачислению.",
+        "location": "Часть A. Новый функционал › Требования к изменениям › Функциональные требования (строка 41)"
+      },
+      {
+        "finding": "D-009",
+        "criterion": "complete",
+        "severity": "major",
+        "title": "В последовательности не учтена проверка включения уведомлений",
+        "quote": "Сервис уведомлений → push-провайдер: текст push и идентификатор устройства клиента.",
+        "location": "Часть A. Новый функционал › Sequence Diagram (строка 46)"
+      },
+      {
+        "finding": "D-010",
+        "criterion": "unambiguous",
+        "severity": "major",
+        "title": "Не определено, относится ли срок передачи к первой попытке или к успешной доставке",
+        "quote": "передаёт push провайдеру не позднее 60 секунд после получения события",
+        "location": "Часть A. Новый функционал › Нефункциональные требования (строка 49)"
+      },
+      {
+        "finding": "D-011",
+        "criterion": "unambiguous",
+        "severity": "major",
+        "title": "Возможные значения результата передачи не определены",
+        "quote": "результат передачи",
+        "location": "Часть A. Новый функционал › Требования к данным (строка 55)"
+      },
+      {
+        "finding": "D-012",
+        "criterion": "complete",
+        "severity": "major",
+        "title": "Не определено поведение сервиса при повторной доставке события",
+        "quote": "не приводит к повторной отправке push.",
+        "location": "Часть A. Новый функционал › Требования к интеграции (строка 59)"
+      },
+      {
+        "finding": "D-013",
+        "criterion": "complete",
+        "severity": "major",
+        "title": "Не определен результат после исчерпания попыток отправки push",
+        "quote": "5 повторных попыток с интервалом 30 секунд и запись в журнале ошибок",
+        "location": "Часть A. Новый функционал › Критерии приемки (строка 76)"
+      },
+      {
+        "finding": "D-016",
+        "criterion": "complete",
+        "severity": "major",
+        "title": "Ссылка на несуществующий метод сохранения настройки",
+        "quote": "ответ совпадает с ответом метода сохранения при статусе 200.",
+        "location": "Часть B. REST API › Общие параметры (строка 112)"
+      },
+      {
+        "finding": "D-017",
+        "criterion": "complete",
+        "severity": "major",
+        "title": "Не определены условия возникновения ошибки 400 и формат ответа",
+        "quote": "при ошибке вернуть 400.",
+        "location": "Часть B. REST API › Логика работы метода (строка 117)"
+      },
+      {
+        "finding": "D-019",
+        "criterion": "set_consistent",
+        "severity": "major",
+        "title": "Денежные суммы в разных единицах: «в тиынах» и «в KZT»",
+        "quote": "операции зачисления, сумма зачисления в тиынах",
+        "location": "Часть A. Новый функционал › Требования к данным (строка 55)"
+      },
+      {
+        "finding": "D-020",
+        "criterion": "set_complete",
+        "severity": "major",
+        "title": "Не определено поведение при закрытии или блокировке счёта",
+        "quote": "Клиент с активным текущим счётом в KZT включает и выключает уведомление о зачислении заработной платы переключателем в приложении.",
+        "location": "Часть A. Новый функционал › Требования к изменениям › Функциональные требования (строка 36)"
+      },
+      {
+        "finding": "D-021",
+        "criterion": "set_complete",
+        "severity": "major",
+        "title": "Не определено поведение при недоступности устройства клиента",
+        "quote": "Если push-провайдер не принял push, сервис уведомлений повторяет передачу до 3 раз с интервалом 30 секунд. После третьей неудачной попытки событие записывается в журнал ошибок.",
+        "location": "Часть A. Новый функционал › Требования к изменениям › Функциональные требования (строка 43)"
+      },
+      {
+        "finding": "D-022",
+        "criterion": "set_complete",
+        "severity": "major",
+        "title": "Не установлен срок хранения клиентских настроек",
+        "quote": "Настройка: идентификатор клиента, признак включения уведомления (salary_push_enabled, boolean), дата и время изменения в UTC.",
+        "location": "Часть A. Новый функционал › Требования к данным (строка 54)"
+      },
+      {
+        "finding": "D-023",
+        "criterion": "set_validatable",
+        "severity": "major",
+        "title": "Ветки правил без критериев приёмки: 7",
+        "quote": "Критерии приемки",
+        "location": "Часть A. Новый функционал › Критерии приемки (строка 67)"
+      },
+      {
+        "finding": "D-024",
+        "criterion": "unambiguous",
+        "severity": "minor",
+        "title": "Период бизнес-метрики не определяет точку отсчёта",
+        "quote": "за первый квартал после запуска",
+        "location": "Часть A. Новый функционал › Цели (строка 22)"
+      },
+      {
+        "finding": "D-025",
+        "criterion": "verifiable",
+        "severity": "minor",
+        "title": "Неточная формулировка: «сразу»",
+        "quote": "Состояние переключателя сохраняется сразу при нажатии.",
+        "location": "Часть A. Новый функционал › Дизайн процесса UI (строка 28)"
+      },
+      {
+        "finding": "D-028",
+        "criterion": "unambiguous",
+        "severity": "minor",
+        "title": "Не определено, допускаются ли маскированные номера счетов в тексте push",
+        "quote": "не содержит номер счёта и наименование работодателя",
+        "location": "Часть A. Новый функционал › Нефункциональные требования (строка 51)"
+      },
+      {
+        "finding": "D-029",
+        "criterion": "unambiguous",
+        "severity": "minor",
+        "title": "Тип идентификатора клиента не определен",
+        "quote": "идентификатор клиента",
+        "location": "Часть A. Новый функционал › Требования к данным (строка 54)"
+      },
+      {
+        "finding": "D-030",
+        "criterion": "unambiguous",
+        "severity": "minor",
+        "title": "Точка отсчета срока хранения журнала не указана",
+        "quote": "Срок хранения журнала — 1 год.",
+        "location": "Часть A. Новый функционал › Требования к данным (строка 55)"
+      },
+      {
+        "finding": "D-031",
+        "criterion": "complete",
+        "severity": "minor",
+        "title": "Не задан допустимый диапазон суммы зачисления",
+        "quote": "amountTiyn (integer, сумма в тиынах)",
+        "location": "Часть A. Новый функционал › Требования к интеграции (строка 58)"
+      },
+      {
+        "finding": "D-033",
+        "criterion": "complete",
+        "severity": "minor",
+        "title": "Не указано ФИО согласующего в блоке согласующих",
+        "quote": "Зарплатные проекты | Руководитель направления | Согласовано",
+        "location": "Часть A. Новый функционал › Блок согласующих (строка 92)"
+      },
+      {
+        "finding": "D-034",
+        "criterion": "set_complete",
+        "severity": "minor",
+        "title": "Не определено требование к согласию клиента на уведомления",
+        "quote": "Наименование задачи | Push-уведомление о зачислении заработной платы",
+        "location": "Часть A. Новый функционал › Общие сведения (строка 13)"
+      },
+      {
+        "finding": "D-035",
+        "criterion": "traceable",
+        "severity": "minor",
+        "title": "Требования без идентификаторов",
+        "quote": "Клиент узнаёт о зачислении заработной платы не позднее чем через 2 минуты после зачисления средств на счёт.",
+        "location": "Часть A. Новый функционал › Цели (строка 22)"
+      }
+    ]
+  },
+  "meta": {
+    "report": "reports/tune/m2_it3.json",
+    "doc_name": "Уведомление о зачислении заработной платы",
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "agent_version": "0.1.0 (ce3c4ac-dirty)",
+    "prompt_version": "d485fe0652",
+    "requirements": 44,
+    "gold": "eval/mutants/2.gold.yaml",
+    "mode": "lexical (порог 80)"
+  }
+}

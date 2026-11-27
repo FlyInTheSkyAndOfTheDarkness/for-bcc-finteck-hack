@@ -9,6 +9,7 @@ decide (verdict)         — итог LLM + правило-страховка: c
 from __future__ import annotations
 
 import logging
+import re
 import threading
 from typing import Optional, Sequence
 
@@ -23,6 +24,8 @@ from reqcheck.schemas import AnswerEffects, QuestionDrafts, VerdictDraft
 log = logging.getLogger(__name__)
 
 MAX_QUESTIONS = 15
+# Вариант «оставить как есть» не решает дефект: убираем, если остаётся ≥ 2 вариантов.
+_STATUS_QUO = re.compile(r"^\s*(?:оставить|сохранить текущ|не (?:менять|изменять)|на усмотрение)", re.I)
 MAX_DETAILED = 40
 
 # pipeline.decide() не получает документ и вопросы; make_questions запоминает их для того же
@@ -91,7 +94,9 @@ def make_questions(doc: Document, reqs: list[Requirement], findings: list[Findin
             for r in by_fid[fid].rids:
                 if r not in qr:
                     qr.append(r)
-        opts = [" ".join(o.split()) for o in d.options if o and o.strip()][:4]
+        opts = [" ".join(o.split()) for o in d.options if o and o.strip()]
+        keep = [o for o in opts if not _STATUS_QUO.match(o)]
+        opts = (keep if len(keep) >= 2 else opts)[:4]
         seen.add(text)
         qs.append(Question(fids=qf, rids=qr, question=text, why=" ".join(d.why.split()), options=opts))
         if len(qs) >= max_questions:

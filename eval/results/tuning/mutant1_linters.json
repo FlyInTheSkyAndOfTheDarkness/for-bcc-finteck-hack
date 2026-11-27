@@ -1,0 +1,187 @@
+{
+  "summary": {
+    "n_gold": 5,
+    "n_findings": 5,
+    "recall": 0.6,
+    "must_find": {
+      "n": 5,
+      "found": 3,
+      "recall": 0.6
+    },
+    "by_severity": {
+      "critical": {
+        "n": 1,
+        "found": 0,
+        "recall": 0.0
+      },
+      "major": {
+        "n": 4,
+        "found": 3,
+        "recall": 0.75
+      },
+      "minor": {
+        "n": 0,
+        "found": 0,
+        "recall": null
+      }
+    },
+    "precision": 0.6,
+    "f1": 0.6,
+    "matched_findings": 3,
+    "unmatched_findings": 2,
+    "duplicates": 0,
+    "severity_agreement": 1.0,
+    "severity_over": 0,
+    "severity_under": 0,
+    "severity_confusion": {
+      "major": {
+        "major": 3
+      }
+    },
+    "criterion_exact": 0.333,
+    "criterion_compatible": 1.0,
+    "by_criterion": {
+      "complete": {
+        "n": 1,
+        "found": 0,
+        "recall": 0.0
+      },
+      "set_consistent": {
+        "n": 3,
+        "found": 2,
+        "recall": 0.667
+      },
+      "unambiguous": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      }
+    },
+    "by_family": {
+      "ambiguity": {
+        "n": 1,
+        "found": 1,
+        "recall": 1.0
+      },
+      "completeness": {
+        "n": 1,
+        "found": 0,
+        "recall": 0.0
+      },
+      "consistency": {
+        "n": 3,
+        "found": 2,
+        "recall": 0.667
+      }
+    },
+    "finding_criteria": {
+      "verifiable": 2,
+      "correct": 1,
+      "set_consistent": 1,
+      "traceable": 1
+    }
+  },
+  "details": {
+    "gold": [
+      {
+        "id": "M-01",
+        "title": "Расплывчатый срок «оперативно» в НФ-1",
+        "severity": "major",
+        "criterion": "unambiguous",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-001",
+            "title": "Неточная формулировка: «оперативно»",
+            "criterion": "verifiable",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 81.55,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "M-02",
+        "title": "КП-5 противоречит ЗП-6 (push по каждому зачислению)",
+        "severity": "critical",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": []
+      },
+      {
+        "id": "M-03",
+        "title": "Сумма в событии в тенге, а в журнале — в тиынах",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-003",
+            "title": "Денежные суммы в разных единицах: «в тиынах» и «в KZT»",
+            "criterion": "set_consistent",
+            "severity": "major",
+            "evidence": 85.0,
+            "score": 74.33,
+            "via": "requirement"
+          }
+        ]
+      },
+      {
+        "id": "M-04",
+        "title": "Код 400 подписан как Not found",
+        "severity": "major",
+        "criterion": "set_consistent",
+        "must_find": true,
+        "matched_by": [
+          {
+            "finding": "D-002",
+            "title": "Код 400 подписан как «Not Found» (это код 404)",
+            "criterion": "correct",
+            "severity": "major",
+            "evidence": 100.0,
+            "score": 94.22,
+            "via": "quote"
+          }
+        ]
+      },
+      {
+        "id": "M-05",
+        "title": "Не описан исход при ошибке проверки тела запроса",
+        "severity": "major",
+        "criterion": "complete",
+        "must_find": true,
+        "matched_by": []
+      }
+    ],
+    "unmatched_findings": [
+      {
+        "finding": "D-004",
+        "criterion": "verifiable",
+        "severity": "minor",
+        "title": "Неточная формулировка: «сразу»",
+        "quote": "Состояние переключателя сохраняется сразу при нажатии.",
+        "location": "Часть A. Новый функционал › Дизайн процесса UI (строка 28)"
+      },
+      {
+        "finding": "D-005",
+        "criterion": "traceable",
+        "severity": "minor",
+        "title": "Требования без идентификаторов",
+        "quote": "Клиент узнаёт о зачислении заработной платы не позднее чем через 2 минуты после зачисления средств на счёт.",
+        "location": "Часть A. Новый функционал › Цели (строка 22)"
+      }
+    ]
+  },
+  "meta": {
+    "report": "reports/ablation/mutant1_linters.json",
+    "doc_name": "Уведомление о зачислении заработной платы",
+    "provider": "fake",
+    "model": "fake-llm",
+    "agent_version": "0.1.0 (a708be9-dirty)",
+    "prompt_version": "8c3fac0f21",
+    "requirements": 44,
+    "gold": "eval/mutants/1.gold.yaml",
+    "mode": "lexical (порог 80)"
+  }
+}

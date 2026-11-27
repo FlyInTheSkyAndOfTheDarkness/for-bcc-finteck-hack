@@ -114,10 +114,23 @@ class Group:
     rids: list[str]
     shared: list[str] = field(default_factory=list)   # поверхностные формы общих терминов
     weight: float = 0.0
+    note: str = ""                                    # подсказка о виде конфликта (пары «ограничение ↔ условие»)
 
     def line(self, i: int) -> str:
         terms = ", ".join(self.shared[:6]) or "связанные типы требований"
+        if self.note:
+            return f"G-{i} ({self.note}; общие термины: {terms}): {', '.join(self.rids)}"
         return f"G-{i} (общие термины: {terms}): {', '.join(self.rids)}"
+
+
+# Ограничение или квантор всеобщности в одном правиле и условие/особый случай в другом —
+# самый частый скрытый конфликт набора («не более N за период» ↔ «если …, снова выполняется»).
+CAP_RE = re.compile(r"(?<![а-яё])(максимум\w*|не более|не больше|не чаще|не превыша\w*|только|всегда|никогда|"
+                    r"независимо|один раз|один такой|одн[аоу] так\w*|единственн\w*|исключительно|ровно|"
+                    r"не меня\w*|не изменя\w*)(?![а-яё])", re.I)
+COND_RE = re.compile(r"(?<![а-яё])(если|при|кроме|за исключением|повторн\w*|снова|следующ\w*|иначе|"
+                     r"в случае|после|изменени\w*|возврат\w*|отмен\w*)(?![а-яё])", re.I)
+RULE_KINDS = {ReqKind.functional, ReqKind.api, ReqKind.nonfunctional, ReqKind.data, ReqKind.integration}
 
 
 class TermIndex:
@@ -230,8 +243,46 @@ class TermIndex:
         return chosen
 
 
+def quantifier_pairs(index: TermIndex, *, max_pairs: int = 4, min_weight: float = 1.5) -> list[Group]:
+    """Пары правил «ограничение/квантор ↔ условие/особый случай» с общими содержательными словами."""
+    rules = [r for r in index.reqs if r.kind in RULE_KINDS]
+    out: list[Group] = []
+    for a in rules:
+        ma = CAP_RE.search(a.quote or "")
+        if not ma:
+            continue
+        for b in rules:
+            if b.rid == a.rid:
+                continue
+            mb = COND_RE.search(b.quote or "")
+            if not mb:
+                continue
+            w, shared = index.pair_score(a.rid, b.rid)
+            words = [k for k in shared if not k.startswith(("#", "$"))]
+            if w < min_weight or len(words) < 2:
+                continue
+            surf = [(index.terms[a.rid].get(k) or index.terms[b.rid][k]).surface for k in shared[:5]]
+            out.append(Group(sorted([a.rid, b.rid], key=lambda x: int(re.sub(r"\D", "", x) or 0)), surf, round(w, 2),
+                             note=f"ограничение «{ma.group(0)}» в {a.rid} против условия «{mb.group(0)}» в {b.rid} — "
+                                  f"проверь вопрос (b)"))
+    out.sort(key=lambda g: (-g.weight, g.rids))
+    seen: set[frozenset] = set()
+    chosen = []
+    for g in out:
+        k = frozenset(g.rids)
+        if k in seen:
+            continue
+        seen.add(k)
+        chosen.append(g)
+        if len(chosen) >= max_pairs:
+            break
+    return chosen
+
+
 def candidate_groups(reqs: Sequence[Requirement], max_groups: int = 12) -> list[Group]:
-    return TermIndex(reqs).groups(max_groups=max_groups)
+    index = TermIndex(reqs)
+    pairs = quantifier_pairs(index)
+    return pairs + index.groups(max_groups=max_groups)
 
 
 def render_groups(groups: Sequence[Group]) -> str:
