@@ -1,0 +1,18 @@
+<section id="quality">
+<p class="eyebrow">Качество: измеряем, а не верим</p>
+<h2>Слепой эталон из 51 дефекта и вклад каждой стадии</h2>
+<table style="margin-top:48px">
+<tr><th style="width:46%">Конфигурация</th><th>Recall</th><th>Обязательные (20)</th><th>Precision</th><th>F1</th></tr>
+<tr><td>Только правила (без LLM)</td><td>29%</td><td>11</td><td>86%</td><td>44%</td></tr>
+<tr><td>+ LLM-ревьюер требований</td><td>63%</td><td>14</td><td>75%</td><td>68%</td></tr>
+<tr><td>+ проверка набора</td><td>75%</td><td>16</td><td>76%</td><td>75%</td></tr>
+<tr><td>Полный агент, среднее по 3 холодным прогонам</td><td>68 ± 3%</td><td>15</td><td>74%</td><td>71%</td></tr>
+</table>
+<div class="grid3" style="margin-top:40px">
+<div><p class="num">37→68%</p><p class="cap">recall: первый прогон против итога после цикла настройки промптов</p></div>
+<div><p class="num">5/5</p><p class="cap">внесённых дефектов найдено в обоих мутантах ТЗ из другой области</p></div>
+<div><p class="num warm">2/2</p><p class="cap">ключевых противоречия Ф-2 ↔ КП и Ф-3 ↔ Ф-4 — критичные в отчёте</p></div>
+</div>
+<div class="footer"><span>reqcheck</span><span class="pg"></span></div>
+<aside>Эталон размечен независимо, до того как появились промпты. Примеры в промптах из других областей, а устойчивость проверяется на мутантах чистого ТЗ. Метрики — среднее по трём холодным прогонам, а не лучший результат.</aside>
+</section>

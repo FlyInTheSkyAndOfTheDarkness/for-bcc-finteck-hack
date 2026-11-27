@@ -1,0 +1,16 @@
+<section id="engineering" class="alt">
+<p class="eyebrow">Инженерия</p>
+<h2>Работает на бесплатном ключе и воспроизводится одной командой</h2>
+<div class="grid3">
+<div class="card reveal"><h3>Модель</h3><p class="body">gemini-3.5-flash-lite с режимом размышлений high. Сильная Flash дала тот же F1 при вдвое большем времени — оставили опцией.</p></div>
+<div class="card reveal d1"><h3>Надёжность</h3><p class="body">Кэш ответов на диске, лимит запросов в минуту, повторы с паузой, цепочка запасных моделей, JSON по схеме.</p></div>
+<div class="card reveal d2"><h3>Контур банка</h3><p class="body">Тот же агент работает через Ollama на локальной модели: документы не покидают периметр. Ключ не попадает в репозиторий и журнал.</p></div>
+</div>
+<div class="grid3" style="margin-top:40px">
+<div><p class="num">≈3,5 мин</p><p class="cap">холодный прогон: 24 вызова LLM</p></div>
+<div><p class="num">163</p><p class="cap">автотеста, прогон с чистого клона по README проверен</p></div>
+<div><p class="num">PDF</p><p class="cap">и DOCX, MD, TXT, HTML: одинаковая нарезка, F1 75% на PDF</p></div>
+</div>
+<div class="footer"><span>reqcheck</span><span class="pg"></span></div>
+<aside>Мы проверили, что жюри повторит прогон: чистый клон, новое окружение, строго по README — установка около 4 минут, прогон около 3,5 минут.</aside>
+</section>

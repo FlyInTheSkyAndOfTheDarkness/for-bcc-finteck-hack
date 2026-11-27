@@ -1,0 +1,17 @@
+<section id="pipeline">
+<p class="eyebrow">Архитектура агента</p>
+<h2>Восемь ролей, у каждой — своя задача и своя схема ответа</h2>
+<div class="row" style="margin-top:72px; gap:20px; align-items:stretch">
+<div class="stage rule reveal"><p class="n">1</p><h3>Ingest</h3><p class="cap">PDF, DOCX → блоки с местом в тексте</p></div>
+<div class="stage rule reveal d1"><p class="n">2</p><h3>Нарезка</h3><p class="cap">правила + LLM, цитаты сверены</p></div>
+<div class="stage rule reveal d1"><p class="n">3</p><h3>Линтеры</h3><p class="cap">без LLM: шаблон, единицы, HTTP</p></div>
+<div class="stage llm reveal d2"><p class="n">4</p><h3>Ревьюер</h3><p class="cap">каждое требование, §5.2.5</p></div>
+<div class="stage llm reveal d2"><p class="n">5</p><h3>Набор</h3><p class="cap">противоречия, сценарии, полнота</p></div>
+<div class="stage llm reveal d3"><p class="n">6</p><h3>Critic</h3><p class="cap">дубли, критичность, «под сомнением»</p></div>
+<div class="stage llm reveal d3"><p class="n">7</p><h3>Вопросы</h3><p class="cap">автору ТЗ, с вариантами</p></div>
+<div class="stage llm reveal d4"><p class="n">8</p><h3>Отчёт</h3><p class="cap">вердикт, MD + HTML</p></div>
+</div>
+<p class="body" style="margin-top:56px"><span style="color:#C7581C"><b>Оранжевая рамка</b></span> — детерминированные шаги без LLM. <span style="color:#2B5FD9"><b>Синяя рамка</b></span> — LLM-роли со структурированным JSON-ответом по pydantic-схеме.</p>
+<div class="footer"><span>reqcheck</span><span class="pg"></span></div>
+<aside>Это не один большой промпт. Каждая роль получает только свой контекст и возвращает JSON строго по схеме. Массовые проверки идут в быструю модель, рассуждения — в сильную.</aside>
+</section>
