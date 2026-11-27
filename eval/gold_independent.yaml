@@ -1,0 +1,504 @@
+# Независимая слепая разметка того же документа (второй аннотатор, без доступа к eval/, reports/ и коду агента).
+# Критерии записаны свободным текстом в description, поэтому сравнение — с --any-criterion.
+- id: A-01
+  title: 'Ф-3 и Ф-4 противоречат: один push в месяц против повторного push после смены
+    порога'
+  section: ''
+  quotes:
+  - Если она ниже нового порога, следующее достижение вызывает push независимо от
+    истории предыдущей настройки.
+  criterion: complete
+  alt_criteria: []
+  severity: critical
+  must_find: true
+  description: 29148 §5.2.6 consistent; §5.2.5 unambiguous
+- id: A-02
+  title: 'Критерий приемки противоречит Ф-2: январская покупка попадает в февральский
+    счётчик'
+  section: ''
+  quotes:
+  - Февральский счётчик вырос на 4 000 ₸
+  criterion: complete
+  alt_criteria: []
+  severity: critical
+  must_find: true
+  description: 29148 §5.2.6 consistent; §5.2.5 correct
+- id: A-03
+  title: В REST API нет метода чтения настроек, хотя приложение должно их читать
+  section: ''
+  quotes:
+  - Приложение читает и сохраняет настройки через дочерний документ «Уведомление о
+    расходах по карте — REST API».
+  criterion: complete
+  alt_criteria: []
+  severity: critical
+  must_find: true
+  description: 29148 §5.2.6 complete, consistent; IEEE 830 traceable
+- id: A-04
+  title: 'Отклонённая сумма: ответ 200 с ERROR или статус 400 — противоречие'
+  section: ''
+  quotes:
+  - '{"result":"ERROR","message":"Проверьте сумму"}'
+  criterion: complete
+  alt_criteria: []
+  severity: critical
+  must_find: true
+  description: 29148 §5.2.6 consistent; §5.2.5 unambiguous, verifiable
+- id: A-05
+  title: Сохранение настройки реализовано методом GET с параметрами в URL
+  section: ''
+  quotes:
+  - curl -G "$BASE/alerts/saveLimit"
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: '29148 §5.2.5 appropriate, feasible (REST-семантика, ИБ: данные карты
+    и токен в логах URL)'
+- id: A-06
+  title: 'Description метода противоречив: сохранение и одновременно чтение порога'
+  section: ''
+  quotes:
+  - 'Сохранение порога. Функциональные требования: чтение порога'
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: false
+  description: 29148 §5.2.5 unambiguous; §5.2.6 consistent
+- id: A-07
+  title: Статус 403 объявлен, но для чужой карты возвращается незаявленный 404
+  section: ''
+  quotes:
+  - Для чужой карты возвращается 404, как и для отсутствующей карты.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.6 consistent, complete
+- id: A-08
+  title: 'Типы полей не совпадают: в запросе integer, в ответе string'
+  section: ''
+  quotes:
+  - '| `amount` | string | При успехе | Порог в тенге | `limit_kzt` |'
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.6 consistent; §5.2.5 unambiguous
+- id: A-09
+  title: 'Единицы измерения расходятся: покупки в тиынах, порог в тенге'
+  section: ''
+  quotes:
+  - сумму покупки в тиынах, признак отправки и порог в тенге
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.6 consistent; §5.2.5 unambiguous
+- id: A-10
+  title: 'Модель данных неполна: нет признака включения, накопленной суммы, типа операции'
+  section: ''
+  quotes:
+  - Хранить идентификатор карты, месяц, идентификатор операции, сумму покупки в тиынах,
+    признак отправки и порог в тенге.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: false
+  description: 29148 §5.2.5 complete; §5.2.6 consistent (DB-поле enabled в части B)
+- id: A-11
+  title: Нет источника данных для отображения суммы за месяц на экране
+  section: ''
+  quotes:
+  - На экране видны переключатель, поле «Порог, ₸», сумма за месяц и кнопка «Сохранить».
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.6 complete, feasible
+- id: A-12
+  title: Цель «в момент покупки» недостижима при учёте только проведённых покупок
+  section: ''
+  quotes:
+  - Дать клиенту возможность узнать о достижении личного бюджета в момент покупки.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.6 consistent, feasible; §5.2.5 unambiguous
+- id: A-13
+  title: Не определено, что такое «проведённая покупка» и какая дата считается датой
+    совершения
+  section: ''
+  quotes:
+  - Месяц определяется по дате совершения покупки в Алматы. В расходы входят проведённые
+    покупки.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.5 unambiguous
+- id: A-14
+  title: 'Неполная классификация операций: отмены, платежи, комиссии, квази-кэш не
+    определены'
+  section: ''
+  quotes:
+  - Переводы и снятие наличных исключаются.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.5 complete, unambiguous
+- id: A-15
+  title: 'Не описаны крайние случаи возврата: другой месяц, частичный, без исходной
+    покупки'
+  section: ''
+  quotes:
+  - Возврат уменьшает расходы месяца исходной покупки.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.5 complete
+- id: A-16
+  title: Не определён учёт покупок в иностранной валюте по карте KZT
+  section: ''
+  quotes:
+  - Держатель активной карты KZT задаёт целый порог от 1 000 до 1 000 000 ₸ включительно.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: false
+  description: 29148 §5.2.5 complete
+- id: A-17
+  title: Нет правила, если новый порог ниже уже накопленной суммы
+  section: ''
+  quotes:
+  - При изменении порога накопленная сумма сохраняется. Если она ниже нового порога
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.5 complete
+- id: A-18
+  title: Не определено, копятся ли расходы при выключенном уведомлении и при включении
+    в середине месяца
+  section: ''
+  quotes:
+  - По умолчанию уведомление выключено.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.5 complete, unambiguous
+- id: A-19
+  title: Неясно, какая сумма передаётся в push, и не определён текст уведомления
+  section: ''
+  quotes:
+  - передать последние четыре цифры карты и сумму при достижении порога
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.5 unambiguous, complete
+- id: A-20
+  title: Нет контрактов интеграции с карточным процессингом и сервисом push
+  section: ''
+  quotes:
+  - 'Процессинг → сервис расходов: проведена покупка.'
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.6 complete; §5.2.5 complete (интерфейсы)
+- id: A-21
+  title: Логика API не проверяет активность карты и валюту KZT из Ф-1
+  section: ''
+  quotes:
+  - 2. Проверить принадлежность карты клиенту.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.6 consistent, complete; IEEE 830 traceable
+- id: A-22
+  title: 'НФТ не измеримо до конца: нет перцентиля, нагрузки, точек замера'
+  section: ''
+  quotes:
+  - Сервис передаёт push на отправку в течение минуты после получения события.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.5 verifiable, unambiguous
+- id: A-23
+  title: Отсутствуют НФТ по доступности, нагрузке, безопасности, логированию и аудиту
+  section: ''
+  quotes:
+  - '### Нефункциональные требования
+
+    Сервис передаёт push на отправку в течение минуты после получения события.'
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: false
+  description: 29148 §5.2.6 complete
+- id: A-24
+  title: Критерии приемки не покрывают Ф-1, Ф-4, возвраты, границы порога, лимит push
+  section: ''
+  quotes:
+  - '| Расходы 19 900 ₸, порог 20 000 ₸ | Перевести 500 ₸ | Счётчик показывает 19
+    900 ₸ |'
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.6 able to be validated, complete; §5.2.5 verifiable
+- id: A-25
+  title: Раздел тестирования требований не заполнен
+  section: ''
+  quotes:
+  - заполняются тестировщиками
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: true
+  description: 29148 §5.2.6 complete; §5.2.5 conforming (шаблон)
+- id: A-26
+  title: При ERROR обещан возврат прежнего состояния, но пример его не содержит
+  section: ''
+  quotes:
+  - 5. При отклонении суммы вернуть прежнее состояние и результат ERROR.
+  criterion: complete
+  alt_criteria: []
+  severity: major
+  must_find: false
+  description: 29148 §5.2.6 consistent; §5.2.5 complete
+- id: A-27
+  title: Не задано правило проверки суммы и переключателя, обязательность суммы при
+    enabled=0
+  section: ''
+  quotes:
+  - 3. Проверить сумму и переключатель.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 unambiguous, complete
+- id: A-28
+  title: 'Правило успешности ответа размыто: 201 не описан, 200 назван Created'
+  section: ''
+  quotes:
+  - Если результат 200 или 201 — успешный. Если результат 400, 401 и далее — неуспешный.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 unambiguous; §5.2.6 consistent
+- id: A-29
+  title: Заявлен Content-Type application/json при отсутствии тела запроса
+  section: ''
+  quotes:
+  - '**Content-Type:** `application/json` .'
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.6 consistent
+- id: A-30
+  title: 'Схема ответа неоднородна: в ответах 4xx/5xx нет поля result'
+  section: ''
+  quotes:
+  - '{"message":"Некорректный запрос"}'
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.6 consistent
+- id: A-31
+  title: Не указаны Prod URL и Swagger, Dev URL без хоста
+  section: ''
+  quotes:
+  - 'Dev: `/alerts/saveLimit` . Prod: —'
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 complete, conforming
+- id: A-32
+  title: Версия и дата документа не заполнены, чек-лист ревью не отмечен
+  section: ''
+  quotes:
+  - Документ (версия/дата) в источнике не заполнен. Пункты чек-листа приведены как
+    в шаблоне, отметки не проставлены.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: true
+  description: IEEE 830 modifiable; 29148 §5.2.5 conforming
+- id: A-33
+  title: Блок согласующих пуст, ответственные не назначены
+  section: ''
+  quotes:
+  - '| Подразделение | ФИО ответственного | Подпись |'
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.6 able to be validated; conforming
+- id: A-34
+  title: Нет задачи в JIRA и реальных владельцев — трассируемость отсутствует
+  section: ''
+  quotes:
+  - Практикум без Jira-задачи
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: IEEE 830 traceable
+- id: A-35
+  title: Требования не ранжированы по приоритету и важности
+  section: ''
+  quotes:
+  - '* **Ф-1.** Держатель активной карты KZT задаёт целый порог'
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: IEEE 830 ranked
+- id: A-36
+  title: Не описана схема отката или скрытия функционала
+  section: ''
+  quotes:
+  - Реализация задачи/проекта предусматривает схему отката решений
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.6 complete
+- id: A-37
+  title: 'Ф-1 не единично: объединяет диапазон порога и значение по умолчанию'
+  section: ''
+  quotes:
+  - Держатель активной карты KZT задаёт целый порог от 1 000 до 1 000 000 ₸ включительно.
+    По умолчанию уведомление выключено.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 singular
+- id: A-38
+  title: Часовой пояс «в Алматы» и календарный месяц для push не определены строго
+  section: ''
+  quotes:
+  - На карту приходится максимум один такой push за календарный месяц.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 unambiguous
+- id: A-39
+  title: 'Идемпотентность не определена: ключ дедупликации и порядок событий не заданы'
+  section: ''
+  quotes:
+  - Повторная доставка одного события процессинга сохраняет исходный итог.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 unambiguous, verifiable
+- id: A-40
+  title: Не описаны сбой доставки push и момент установки признака отправки
+  section: ''
+  quotes:
+  - при достижении отправка push → завершение
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 complete
+- id: A-41
+  title: 'BPMN и sequence без ветвлений: нет проверки включения, исключений, возвратов'
+  section: ''
+  quotes:
+  - Проведение покупки → пересчёт расходов → проверка порога → при достижении отправка
+    push → завершение.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.6 complete, comprehensible
+- id: A-42
+  title: Архитектура не связывает учёт расходов с сервисом настроек, расходится с
+    sequence
+  section: ''
+  quotes:
+  - Мобильное приложение → сервис настроек. Карточный процессинг → учёт расходов →
+    сервис push.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.6 consistent
+- id: A-43
+  title: UI не описывает тексты ошибок и состояния для неактивной или не-KZT карты
+  section: ''
+  quotes:
+  - При ошибке ввода сообщение появляется под полем.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 complete, unambiguous
+- id: A-44
+  title: Не определено поведение при блокировке, перевыпуске карты и для доп. карт
+  section: ''
+  quotes:
+  - '**Authorization** | Bearer, сессия владельца карты'
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 complete
+- id: A-45
+  title: 'Терминология непоследовательна: порог, лимит, бюджет'
+  section: ''
+  quotes:
+  - Дать клиенту возможность узнать о достижении личного бюджета в момент покупки.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.6 comprehensible; §5.2.5 unambiguous
+- id: A-46
+  title: Не гарантирован один push при параллельной обработке нескольких покупок
+  section: ''
+  quotes:
+  - Когда расходы переходят от суммы ниже порога к сумме, равной порогу или выше,
+    клиент получает push.
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 complete, feasible
+- id: A-47
+  title: В критерии приемки не указано, что уведомление включено
+  section: ''
+  quotes:
+  - '| Расходы 48 500 ₸, порог 50 000 ₸ | Провести покупку на 1 500 ₸ | Итог 50 000
+    ₸ и один push |'
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 verifiable, complete
+- id: A-48
+  title: Не определён срок хранения данных операций
+  section: ''
+  quotes:
+  - '### Требования к данным'
+  criterion: complete
+  alt_criteria: []
+  severity: minor
+  must_find: false
+  description: 29148 §5.2.5 complete
