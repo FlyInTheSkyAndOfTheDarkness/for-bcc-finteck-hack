@@ -283,6 +283,13 @@ class GeminiLLM(BaseLLM):
                 if isinstance(err, (QuotaExhausted, ModelUnavailable)) and nxt:
                     self._switch(model, nxt, str(err)[:120])
                     continue
+                if isinstance(err, (QuotaExhausted, ModelUnavailable)):
+                    # Непробованных нет, но живы модели, давшие в этом вызове временный сбой (503/таймаут):
+                    # переходим на одну из них и отдаём временную ошибку — внешний цикл повторит с паузой.
+                    alive = self._next_model(model)
+                    if alive:
+                        self._switch(model, alive, str(err)[:120])
+                        raise RetryableError(f"{err}; повтор на {alive}") from err
                 if isinstance(err, RetryableError) and nxt:
                     if err.timeout:
                         self._switch(model, nxt, "таймаут")

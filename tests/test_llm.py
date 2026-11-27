@@ -196,6 +196,37 @@ def test_gemini_chain_wraps_skips_dead_and_recovers(tmp_path):
     assert g._dead == {"gemini-p-flash-lite", "gemini-x-flash", "gemini-old-flash"}
 
 
+def test_gemini_transient_model_retried_after_last_fallback_dies(tmp_path):
+    """503 на живой модели, затем 404 на последней запасной → не падать, а повторить живую с паузой."""
+    class APIError(Exception):
+        def __init__(self, code, msg):
+            super().__init__(msg)
+            self.code, self.details = code, None
+
+    s = mk(tmp_path, provider="gemini", model="")
+    g = GeminiLLM(s)
+    g._ready, g._chain = True, ["gemini-p-flash-lite", "gemini-x-flash-lite", "gemini-old-flash"]
+    g._dead = {"gemini-p-flash-lite"}                 # основная исчерпала квоту
+    g.model = "gemini-x-flash-lite"
+    g._unavail["gemini-x-flash-lite"] = 1             # второй 503 подряд → уход на следующую
+    calls = []
+
+    def fake_generate(model, *a, **k):
+        calls.append(model)
+        if model == "gemini-old-flash":
+            raise APIError(404, "model is no longer available")
+        if calls.count(model) == 1:
+            raise APIError(503, "UNAVAILABLE")
+        return OK, 1
+
+    g._generate = fake_generate
+    g._sleep = lambda *_: None
+    out = g.generate_json("s", "u", SegResult, tag="t")
+    assert out.requirements == []
+    assert calls == ["gemini-x-flash-lite", "gemini-old-flash", "gemini-x-flash-lite"]
+    assert "gemini-old-flash" in g._dead and g.model == "gemini-x-flash-lite"
+
+
 @pytest.mark.skipif(os.getenv("RUN_LIVE") != "1", reason="живой тест: RUN_LIVE=1")
 def test_live_gemini_findingdrafts(tmp_path):
     from reqcheck.providers import make_client
