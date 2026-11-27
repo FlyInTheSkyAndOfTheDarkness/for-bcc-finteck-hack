@@ -8,7 +8,10 @@
 по убыванию версии, затем `gemini-X.Y-flash-lite` по убыванию; каждая проверяется крошечным
 запросом (таймаут LLM_PROBE_TIMEOUT, по умолчанию 30 с); 404/403/квота/503/таймаут -> следующая.
 Во время работы то же правило: суточная квота, 404, таймаут (если есть следующая модель) или
-два подряд 503 -> переход на следующую модель цепочки.
+два подряд 503 -> переход на следующую модель цепочки. Модели с 404/403/суточной квотой исключаются
+до конца прогона; цепочка обходится по кругу, но за один вызов каждая модель пробуется один раз.
+После временного ухода с основной модели (503/таймаут) клиент через LLM_RECOVER_S секунд
+(по умолчанию 60) снова пробует основную: результаты прогона не «расползаются» по запасным моделям.
 
 Размышления: переменная LLM_THINKING = off|minimal|low|medium|high (по умолчанию low).
 """
@@ -75,6 +78,9 @@ class GeminiLLM(BaseLLM):
         self._chain: list[str] = []
         self._ready = False
         self._unavail: dict[str, int] = {}
+        self._dead: set[str] = set()           # 404/403/суточная квота — до конца прогона
+        self._left_primary = 0.0               # когда ушли с основной модели из-за 503/таймаута
+        self.recover_s = float(os.getenv("LLM_RECOVER_S") or 60)
         self._no_schema: set[str] = set()      # модели, где response_schema не принят
         self._no_thinking: set[str] = set()    # модели, где thinking_config не принят
         self.thinking = (os.getenv("LLM_THINKING") or "low").strip().lower()
@@ -149,19 +155,39 @@ class GeminiLLM(BaseLLM):
                 raise err
         raise LLMError("Ни одна модель Gemini не прошла проверку: " + "; ".join(skipped))
 
-    def _next_model(self, current: str) -> Optional[str]:
+    def _next_model(self, current: str, tried: Optional[set] = None) -> Optional[str]:
+        """Следующая живая модель по кругу после current, не пробованная в этом вызове."""
         with self._lock:
-            try:
-                i = self._chain.index(current)
-            except ValueError:
-                return self._chain[0] if self._chain else None
-            return self._chain[i + 1] if i + 1 < len(self._chain) else None
+            chain = self._chain
+            if not chain:
+                return None
+            i = chain.index(current) if current in chain else -1
+            skip = self._dead | (tried or set()) | {current}
+            for k in range(1, len(chain) + 1):
+                cand = chain[(i + k) % len(chain)]
+                if cand not in skip:
+                    return cand
+            return None
 
     def _switch(self, frm: str, to: str, why: str) -> None:
         with self._lock:
             if self.model == frm:
+                if self._chain and frm == self._chain[0]:
+                    self._left_primary = time.monotonic()
                 self.model = to
                 self._log(f"переключение модели {frm} -> {to} ({why})")
+
+    def _maybe_recover(self) -> None:
+        """Вернуться на основную модель, если ушли с неё из-за временной ошибки давно."""
+        with self._lock:
+            if not self._chain:
+                return
+            primary = self._chain[0]
+            if (self.model != primary and primary not in self._dead and self._left_primary
+                    and time.monotonic() - self._left_primary >= self.recover_s):
+                self._log(f"возврат на основную модель {primary}")
+                self.model = primary
+                self._left_primary = 0.0
 
     @staticmethod
     def _log(msg: str) -> None:
@@ -232,8 +258,16 @@ class GeminiLLM(BaseLLM):
 
     def _complete_json(self, system, user, json_schema, schema, temperature):
         self._ensure_model()
+        self._maybe_recover()
+        tried: set[str] = set()
         while True:
             model = self.model
+            if model in self._dead:                    # другой поток уже исключил модель
+                nxt = self._next_model(model, tried)
+                if not nxt:
+                    raise LLMError("Нет доступных моделей Gemini (все исключены: 404/квота).")
+                self._switch(model, nxt, "модель исключена")
+                continue
             try:
                 out = self._generate(model, system, user, schema, temperature,
                                      timeout=self._timeout_s(model), json_schema=json_schema)
@@ -241,7 +275,11 @@ class GeminiLLM(BaseLLM):
                 return out
             except Exception as e:  # noqa: BLE001
                 err = self._classify(e)
-                nxt = self._next_model(model)
+                tried.add(model)
+                if isinstance(err, (QuotaExhausted, ModelUnavailable)):
+                    with self._lock:
+                        self._dead.add(model)
+                nxt = self._next_model(model, tried)
                 if isinstance(err, (QuotaExhausted, ModelUnavailable)) and nxt:
                     self._switch(model, nxt, str(err)[:120])
                     continue

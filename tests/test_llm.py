@@ -157,6 +157,45 @@ def test_gemini_classify_and_fallback(tmp_path):
     assert g.model == "gemini-b-flash-lite"
 
 
+def test_gemini_chain_wraps_skips_dead_and_recovers(tmp_path):
+    class APIError(Exception):
+        def __init__(self, code, msg):
+            super().__init__(msg)
+            self.code, self.details = code, None
+
+    s = mk(tmp_path, provider="gemini", model="")
+    g = GeminiLLM(s)
+    g._ready, g._chain = True, ["gemini-p-flash-lite", "gemini-x-flash", "gemini-old-flash"]
+    g.model = "gemini-x-flash"                     # уже ушли с основной из-за 503
+    g._left_primary = 1.0                          # давно
+    g.recover_s = 0
+    state = {"primary_up": False}
+    used = []
+
+    def fake_generate(model, *a, **k):
+        used.append(model)
+        if model == "gemini-old-flash":
+            raise APIError(404, "model is no longer available")
+        if model == "gemini-p-flash-lite" and not state["primary_up"]:
+            raise APIError(429, "RESOURCE_EXHAUSTED PerDay")
+        if model == "gemini-x-flash":
+            raise APIError(404, "not found")
+        return OK, 1
+
+    g._generate = fake_generate
+    state["primary_up"] = True
+    out = g.generate_json("s", "u", SegResult, tag="t1")      # возврат на основную модель
+    assert out.requirements == [] and used == ["gemini-p-flash-lite"] and g.model == "gemini-p-flash-lite"
+
+    # основная исчерпала квоту, x и old мертвы → понятная ошибка, без зацикливания
+    used.clear()
+    state["primary_up"] = False
+    with pytest.raises(Exception):
+        g.generate_json("s", "u2", SegResult, tag="t2")
+    assert len(used) == len(set(used)) == 3                    # каждая модель — один раз
+    assert g._dead == {"gemini-p-flash-lite", "gemini-x-flash", "gemini-old-flash"}
+
+
 @pytest.mark.skipif(os.getenv("RUN_LIVE") != "1", reason="живой тест: RUN_LIVE=1")
 def test_live_gemini_findingdrafts(tmp_path):
     from reqcheck.providers import make_client
