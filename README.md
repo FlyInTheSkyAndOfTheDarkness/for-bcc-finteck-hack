@@ -178,7 +178,7 @@ streamlit run app.py
 python -m reqcheck docs/requirements.md -o reports/report_local.md --provider ollama --model qwen2.5:14b
 ```
 
-Провайдеры OpenAI и Anthropic требуют установки SDK (`pip install openai` или `pip install anthropic`).
+Провайдеры OpenAI и Anthropic требуют установки SDK (`pip install openai` или `pip install anthropic`). **Anthropic:** модель по умолчанию `claude-opus-5-5`, ответ строго по JSON-схеме (структурированный вывод), адаптивные размышления с глубиной `LLM_EFFORT` (по умолчанию `high`), серверный запасной маршрут при отказе модели; `temperature` не передаётся (у текущих моделей Claude её нет), воспроизводимость даёт кэш.
 
 ---
 

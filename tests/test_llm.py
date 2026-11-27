@@ -227,6 +227,40 @@ def test_gemini_transient_model_retried_after_last_fallback_dies(tmp_path):
     assert "gemini-old-flash" in g._dead and g.model == "gemini-x-flash-lite"
 
 
+def test_anthropic_request_shape(tmp_path, monkeypatch):
+    """Claude: структурированный вывод, адаптивные размышления + effort, без temperature, fallbacks."""
+    pytest.importorskip("anthropic")
+    from types import SimpleNamespace
+    from reqcheck.providers.anthropic import AnthropicLLM
+    monkeypatch.setenv("LLM_EFFORT", "high")
+    s = mk(tmp_path, provider="anthropic", model="", api_key="test-key")
+    g = AnthropicLLM(s)
+    assert g.model == "claude-opus-5-5"
+    seen = {}
+
+    class Stream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def get_final_message(self):
+            return SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="text", text=OK)],
+                                   usage=SimpleNamespace(input_tokens=10, output_tokens=5))
+
+    def stream(**kw):
+        seen.update(kw)
+        return Stream()
+
+    g._client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(stream=stream)))
+    out = g.generate_json("s", "u", SegResult, tag="t")
+    assert out.requirements == []
+    assert seen["output_format"] is SegResult and seen["thinking"] == {"type": "adaptive"}
+    assert seen["output_config"] == {"effort": "high"} and "temperature" not in seen
+    assert seen["fallbacks"] == "default" and seen["model"] == "claude-opus-5-5"
+
+
 @pytest.mark.skipif(os.getenv("RUN_LIVE") != "1", reason="живой тест: RUN_LIVE=1")
 def test_live_gemini_findingdrafts(tmp_path):
     from reqcheck.providers import make_client
