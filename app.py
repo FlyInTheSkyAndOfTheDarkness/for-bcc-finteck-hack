@@ -110,7 +110,9 @@ def diff_findings(before: ReportData, after: ReportData) -> dict:
 up = None
 with st.sidebar:
     st.header("Настройки")
-    prov_label = st.selectbox("Провайдер LLM", list(PROVIDERS), key="provider")
+    _has_key = bool(load_settings(provider="gemini").api_key)   # есть ключ Gemini → он по умолчанию
+    prov_label = st.selectbox("Провайдер LLM", list(PROVIDERS), key="provider",
+                              index=list(PROVIDERS.values()).index("gemini") if _has_key else 0)
     provider = PROVIDERS[prov_label]
     cfg = load_settings(provider=provider)
     st.caption(f"Модель: `{cfg.model or 'авто'}`")
@@ -133,7 +135,7 @@ with st.sidebar:
         up = st.file_uploader("Файл требований", type=["pdf", "docx", "md", "txt", "html"], key="upload")
         if up is not None:
             path_to_run = "__upload__"
-    run_clicked = st.button("▶ Проверить требования", type="primary", use_container_width=True,
+    run_clicked = st.button("▶ Проверить требования", type="primary", width="stretch",
                             key="run_btn", disabled=path_to_run is None)
 
 # ------------------------------------------------------------------- header --
@@ -195,7 +197,7 @@ with tabs[1]:
     df = pd.DataFrame([{"R-ID": r.rid, "ID в документе": r.doc_id or "—", "Вид": kind_name(r.kind),
                         "Формулировка": r.summary, "Место": r.location} for r in data.requirements])
     st.caption(f"Выделено требований: {len(df)}")
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width="stretch", hide_index=True)
 
 # --------------------------------------------------------------- Замечания --
 with tabs[2]:
@@ -307,6 +309,6 @@ with tabs[5]:
         tdf = pd.DataFrame(rows)
         st.caption(f"Вызовов: {len(tdf)} · из кэша: {(tdf['Кэш'] == 'да').sum()} · "
                    f"токенов: {int(tdf['Токены'].fillna(0).sum())}")
-        st.dataframe(tdf, use_container_width=True, hide_index=True)
+        st.dataframe(tdf, width="stretch", hide_index=True)
     else:
         st.info("Журнал вызовов LLM пуст (провайдер fake не пишет трассировку или вызовов не было).")

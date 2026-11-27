@@ -126,7 +126,9 @@ class BaseLLM(LLMClient):
         s = self.settings
         temp = s.temperature if temperature is None else temperature
         js = schema.model_json_schema()
-        key = _sha(json.dumps([self.provider, self._cache_model, system, user, js, temp],
+        # режим размышлений меняет ответ модели → входит в ключ (иначе прогоны с разным LLM_THINKING смешиваются)
+        key = _sha(json.dumps([self.provider, self._cache_model, system, user, js, temp,
+                               getattr(self, "thinking", None)],
                               ensure_ascii=False, sort_keys=True))
         cache_file = Path(s.cache_dir) / f"{key}.json"
         if s.use_cache and cache_file.exists():

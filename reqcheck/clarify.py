@@ -228,6 +228,11 @@ def decide(reqs: list[Requirement], findings: list[Finding], summary: SetSummary
     except Exception as e:  # noqa: BLE001
         log.warning("verdict упал: %s", e)
         return _fallback(findings)
+    if not " ".join(d.rationale.split()):
+        # модель не дала обоснования → флаги и текст берём из правил целиком, чтобы они не противоречили
+        fb = _fallback(findings)
+        fb.rationale = fb.rationale.replace("(модель недоступна)", "(модель не дала обоснования)")
+        return fb
     dev, test = d.ready_for_development, d.ready_for_testing
     notes = []
     if dev and not dev_ok:
