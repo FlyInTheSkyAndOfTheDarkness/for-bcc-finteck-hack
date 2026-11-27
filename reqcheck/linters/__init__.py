@@ -5,7 +5,8 @@
   vague        — слабые/неоднозначные слова (lexicon/vague_ru.yaml);
   units        — денежные единицы (lexicon/units.yaml);
   api          — HTTP-метод, данные в query, коды ответа, тело запроса, типы параметров;
-  ids          — дубли/пропуски нумерации, требования без идентификаторов.
+  ids          — дубли/пропуски нумерации, требования без идентификаторов;
+  singular     — несколько утверждений в одном пронумерованном пункте (ISO 29148 «singular»).
 Каждая находка — source=linter, с дословной цитатой из блока и локатором.
 """
 from __future__ import annotations
@@ -19,14 +20,14 @@ log = logging.getLogger(__name__)
 
 def run_linters(doc: Document, reqs: list[Requirement]) -> list[Finding]:
     """Вернуть находки source=linter, с точной цитатой и локатором."""
-    from reqcheck.linters import api, ids, placeholders, units, vague
+    from reqcheck.linters import api, ids, placeholders, singular, units, vague
     from reqcheck.linters.common import Ctx
 
     if not doc.blocks:
         return []
     ctx = Ctx(doc, reqs)
     found: list[Finding] = []
-    for mod in (placeholders, vague, units, api, ids):
+    for mod in (placeholders, vague, units, api, ids, singular):
         try:
             found += mod.run(ctx)
         except Exception as e:  # noqa: BLE001 — один сломанный линтер не должен ронять прогон
