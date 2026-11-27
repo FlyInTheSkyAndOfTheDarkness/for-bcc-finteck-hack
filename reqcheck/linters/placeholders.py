@@ -39,6 +39,21 @@ def _table_title(table: list[Block]) -> str:
     return sp[-1] if sp else "таблица"
 
 
+UNMARKED_RE = re.compile(r"отметк\w*\s+не\s+(проставл|сделан|выставл)\w*|не\s+отмечен\w*|"
+                         r"приведен\w*\s+как\s+в\s+шаблоне", re.I)
+
+
+def _unmarked_note(ctx: Ctx, table: list[Block]) -> tuple[Block, str] | None:
+    """Абзац того же раздела, где документ сам признаёт, что отметки не проставлены — лучшая цитата."""
+    sp = table[0].section_path
+    for b in ctx.doc.blocks:
+        if b.section_path != sp or b.kind != BlockKind.text or not UNMARKED_RE.search(b.text):
+            continue
+        sent = next((x for x in re.split(r"(?<=[.!?])\s+", b.text) if UNMARKED_RE.search(x)), b.text)
+        return b, sent
+    return None
+
+
 def check_choices(ctx: Ctx) -> list[Finding]:
     out = []
     for table in ctx.tables():
@@ -49,14 +64,18 @@ def check_choices(ctx: Ctx) -> list[Finding]:
         rows_hit = sorted({b.id for b, _ in hits})
         first = hits[0][0]
         title = _table_title(table)
+        note = _unmarked_note(ctx, table)
+        anchor, quote = (note if note else (first, first.text))
         out.append(ctx.finding(
             criterion=Criterion.conforming, severity=Severity.minor,
             title=f"Не выбраны значения «{hits[0][1]}» в таблице «{short(title, 40)}»",
-            quote=first.text, block=first, scope="set",
+            quote=quote, block=anchor, extra_blocks=[first] if note else (), scope="set",
             explanation=(f"В таблице «{title}» {len(hits)} ячеек в {len(rows_hit)} строках содержат "
                          f"неразрешённые альтернативы шаблона (например, «{hits[0][1]}»): отметки не "
-                         f"проставлены, раздел оставлен в виде заготовки. Документ не соответствует "
-                         f"собственному шаблону, а заявленные проверки фактически не выполнены."),
+                         f"проставлены, раздел оставлен в виде заготовки" +
+                         (f" — это прямо сказано в тексте: «{quote}»" if note else "") +
+                         ". Документ не соответствует собственному шаблону, а заявленные проверки "
+                         "фактически не выполнены."),
             recommendation=("Выберите одно значение в каждой ячейке (Да / Нет / Не требуется), "
                             "заполните примечания для ответов «Нет» или удалите неприменимые строки."),
             confidence=0.95))

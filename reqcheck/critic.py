@@ -204,9 +204,13 @@ def apply_verdicts(batch: list[Finding], result: Optional[CriticResult]) -> list
         if 0 <= v.index < n and v.index not in verdicts:
             verdicts[v.index] = v
     kept = {i for i, v in verdicts.items() if v.keep}
-    # защищённые линтерные находки не выбрасываются (кроме слияния как дубль)
+    # Защищённые линтерные находки не выбрасываются и сливаются только с другой линтерной находкой:
+    # широкая LLM-находка («паспорт не заполнен») поглощала точный факт («нет ключа задачи в JIRA»).
     for i, v in verdicts.items():
-        if not v.keep and v.duplicate_of is None and _protected(batch[i]):
+        if v.keep or not _protected(batch[i]):
+            continue
+        j = v.duplicate_of
+        if j is None or not (0 <= j < n) or batch[j].source != FindingSource.linter:
             kept.add(i)
     target: dict[int, int] = {}
     for i, v in verdicts.items():

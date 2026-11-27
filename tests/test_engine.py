@@ -228,6 +228,22 @@ def test_apply_verdicts_dup_and_drop():
     assert not out[2].verified and not out[2].doubtful   # защищённый линтер остался, но не подтверждён
 
 
+def test_protected_linter_not_swallowed_by_broader_llm_finding():
+    batch = [_f(["R-01"], Criterion.conforming, "Задача в JIRA", src=FindingSource.linter, conf=0.9),
+             _f(["R-01"], Criterion.complete, "Паспорт не заполнен"),
+             _f(["R-01"], Criterion.conforming, "Версия —", src=FindingSource.linter, conf=0.9),
+             _f(["R-01"], Criterion.conforming, "Дата —", src=FindingSource.linter, conf=0.9)]
+    res = CriticResult(verdicts=[
+        CriticVerdict(index=0, keep=False, duplicate_of=1, severity="minor", confidence=0.9, reason="шире #1"),
+        CriticVerdict(index=1, keep=True, severity="minor", confidence=0.9, reason="ok"),
+        CriticVerdict(index=2, keep=True, severity="minor", confidence=0.9, reason="ok"),
+        CriticVerdict(index=3, keep=False, duplicate_of=2, severity="minor", confidence=0.9, reason="дубль #2"),
+    ])
+    out = critic.apply_verdicts(batch, res)
+    # линтер → LLM: точный факт остаётся отдельной находкой; линтер → линтер: обычное слияние
+    assert [f.quote for f in out] == ["Задача в JIRA", "Паспорт не заполнен", "Версия —"]
+
+
 def test_verify_drops_ungrounded_unconfirmed(doc, reqs):
     ok = _f([reqs[5].rid], Criterion.unambiguous, reqs[5].quote[:40])
     bad = _f([reqs[5].rid], Criterion.complete, "нет такого текста")
