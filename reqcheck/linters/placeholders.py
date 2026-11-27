@@ -181,7 +181,35 @@ def check_metadata(ctx: Ctx) -> tuple[list[Finding], set[str]]:
     return [f], ({mention.id} if mention is not None else set())
 
 
+TRACKER_KEY = re.compile(r"jira|джир|тикет|ticket|issue|трекер|задача\s+в\s", re.I)
+TRACKER_ID = re.compile(r"\b[A-Z][A-Z0-9]{1,15}-\d+\b|https?://\S+")
+
+
+def check_tracker(ctx: Ctx) -> list[Finding]:
+    """Поле «Задача в JIRA» (тикет, issue) без ключа задачи или ссылки — паспорт не связан с работой."""
+    out = []
+    for table in ctx.tables():
+        for b in (x for x in table if x.kind == BlockKind.table_row):
+            cells = cell_values(b)
+            if len(cells) != 2 or not TRACKER_KEY.search(cells[0]):
+                continue
+            key, val = cells
+            if not val or val.casefold() in DASH_VALUES or TRACKER_ID.search(val):
+                continue   # пусто/прочерк ловит check_dashes; ключ или ссылка — заполнено
+            k = key.strip("* ")
+            out.append(ctx.finding(
+                criterion=Criterion.conforming, severity=Severity.minor,
+                title=f"В поле «{short(k, 30)}» нет ключа задачи",
+                quote=b.text, block=b, scope="set",
+                explanation=(f"Поле «{k}» заполнено текстом «{short(val, 60)}» вместо ключа задачи или "
+                             "ссылки на неё. Требования не связаны с задачей в трекере: нельзя проследить "
+                             "решения, обсуждения и статус работ, а изменения требований — привязать к релизу."),
+                recommendation=f"Укажите в поле «{k}» ключ задачи (например, <PROJ-123>) или ссылку на неё.",
+                confidence=0.9))
+    return out
+
+
 def run(ctx: Ctx) -> list[Finding]:
     meta, used = check_metadata(ctx)
     return check_choices(ctx) + check_empty_tables(ctx) + check_dashes(ctx) + \
-        check_stub_phrases(ctx, used) + meta
+        check_stub_phrases(ctx, used) + check_tracker(ctx) + meta

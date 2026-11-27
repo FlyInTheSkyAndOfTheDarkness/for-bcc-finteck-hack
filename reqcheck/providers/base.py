@@ -220,7 +220,7 @@ class BaseLLM(LLMClient):
             "model": self.model or self._cache_model, "latency_s": round(latency, 3),
             "tokens": tokens, "cache_hit": cache_hit, "attempt": attempt,
             "system_sha": _sha(system)[:12], "user_sha": _sha(user)[:12],
-            "user": user[:2000], "response": (response or "")[:4000], "error": error,
+            "user": user[:2000], "response": (response or "")[:40000], "error": error,
         }
         line = json.dumps(rec, ensure_ascii=False)
         k = getattr(self.settings, "api_key", "") or ""

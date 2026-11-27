@@ -41,6 +41,33 @@ class FindingDrafts(BaseModel):
     findings: list[FindingDraft]
 
 
+# ---- set_checklist: ответ по каждому пункту чек-листа -------------------------
+class ChecklistStatus(str, Enum):
+    covered = "covered"                # документ отвечает на вопрос пункта
+    partial = "partial"                # отвечает не полностью
+    missing = "missing"                # не отвечает
+    known = "known"                    # пропуск уже есть в известных находках
+    not_applicable = "not_applicable"  # пункт не относится к документу
+
+
+class ChecklistCheck(BaseModel):
+    id: str                            # id пункта: FT-…/RQ-…
+    status: ChecklistStatus
+    evidence: str = ""                 # covered/known: дословная цитата ответа или D-NNN / R-NN
+    rids: list[str] = Field(default_factory=list)
+    criterion: Optional[Criterion] = None
+    severity: Optional[Severity] = None
+    title: str = ""                    # partial/missing: ≤ 12 слов
+    quote: str = ""                    # дословная цитата места, где проявляется пропуск
+    explanation: str = ""
+    recommendation: str = ""
+    confidence: float = Field(default=0.6, ge=0, le=1)
+
+
+class ChecklistChecks(BaseModel):
+    checks: list[ChecklistCheck]
+
+
 # ---- set_scenarios: прогон критериев приёмки против правил --------------------
 class ScenarioCheck(BaseModel):
     ac_rid: str                       # R-NN критерия приёмки

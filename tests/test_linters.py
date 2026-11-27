@@ -175,3 +175,16 @@ def test_generic_defects_other_domain():
     assert "Swagger" in " ".join(f.explanation for f in fs)
     sev = {f.title: f.severity for f in fs}
     assert sev[next(t for t in sev if t.startswith("GET"))] == Severity.major
+
+
+def test_tracker_field_without_issue_key():
+    from reqcheck.linters import placeholders
+    from reqcheck.linters.common import Ctx
+    from tests.helpers_blocks import doc_from_md
+    md = ("# Д\n\n| Поле | Значение |\n| :--- | :--- |\n| **Задача в JIRA** | Практикум без задачи |\n"
+          "| **Продукт** | Банк |\n| **Тип** | Новый |\n")
+    doc = doc_from_md(md)
+    fs = placeholders.check_tracker(Ctx(doc, []))
+    assert len(fs) == 1 and "ключа задачи" in fs[0].title and fs[0].grounded
+    ok = doc_from_md(md.replace("Практикум без задачи", "PAY-1234"))
+    assert placeholders.check_tracker(Ctx(ok, [])) == []

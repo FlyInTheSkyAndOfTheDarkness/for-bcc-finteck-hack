@@ -64,7 +64,7 @@ def run(input_path: str | Path, settings: Settings, *, llm: Optional[LLMClient] 
     """Полный прогон агента. ask — функция для уточняющих вопросов (интерактивный режим)."""
     say = progress or (lambda stage, msg: None)
     t0 = time.time()
-    # REQCHECK_SKIP=review,set,critic,clarify — отключить стадии (абляция и отладка)
+    # REQCHECK_SKIP=review,set,checklist,critic,clarify — отключить стадии (абляция и отладка)
     skip = {x.strip() for x in os.getenv("REQCHECK_SKIP", "").split(",") if x.strip()}
     llm = llm or get_client(settings)
 

@@ -99,10 +99,23 @@ def make_questions(doc: Document, reqs: list[Requirement], findings: list[Findin
         opts = (keep if len(keep) >= 2 else opts)[:4]
         seen.add(text)
         qs.append(Question(fids=qf, rids=qr, question=text, why=" ".join(d.why.split()), options=opts))
-        if len(qs) >= max_questions:
-            break
+    qs = sorted(qs, key=lambda q: _priority(q, by_fid))[:max_questions]   # sorted стабилен
     _remember(doc, reqs, qs)
     return qs
+
+
+def _priority(q: Question, by_fid: dict) -> int:
+    """0 — вопрос закрывает критичное противоречие; 1 — другую критичную находку; 2 — прочее.
+
+    Внутри уровня сохраняется порядок модели. Противоречие — решение, которое может принять только
+    автор, поэтому оно идёт первым, даже если модель поставила выше технический вопрос.
+    """
+    fs = [by_fid[x] for x in q.fids if x in by_fid]
+    if any(f.severity == Severity.critical and f.criterion == Criterion.set_consistent for f in fs):
+        return 0
+    if any(f.severity == Severity.critical for f in fs):
+        return 1
+    return 2
 
 
 def _answers_lines(questions: Sequence[Question]) -> str:

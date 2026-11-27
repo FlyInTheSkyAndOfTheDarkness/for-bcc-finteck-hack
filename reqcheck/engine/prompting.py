@@ -217,6 +217,35 @@ def outline(doc: Document, reqs: Sequence[Requirement]) -> str:
 
 
 # ---------------------------------------------------------------- fintech ---
+CHECKLISTS = ("checks/fintech.yaml", "checks/requirements.yaml")
+
+
+def checklist_items(doc: Document, files: Sequence[str] = CHECKLISTS) -> list[dict]:
+    """Все применимые к документу пункты чек-листов (без лимита), в порядке каталогов.
+
+    Пункт применим, если в тексте найдена хотя бы одна основа из applies_when (пустой список —
+    применим всегда). К пункту добавляется area_ru — название области.
+    """
+    text = (doc.text or " ".join(b.text for b in doc.blocks)).lower().replace("ё", "е")
+    out = []
+    for rel in files:
+        data = load_yaml(rel) or {}
+        areas = data.get("areas") or {}
+        for it in data.get("items") or []:
+            keys = [k.lower().replace("ё", "е") for k in (it.get("applies_when") or [])]
+            if keys and not any(k in text for k in keys):
+                continue
+            out.append({**it, "area_ru": areas.get(it.get("area"), it.get("area", ""))})
+    return out
+
+
+def checklist_lines(items: Iterable[dict]) -> str:
+    return "\n".join(
+        f"- [{it['id']}] ({it.get('area_ru', '')}; criterion: {it.get('criterion')}; по умолчанию: "
+        f"{it.get('default_severity')}) {str(it.get('question_ru', '')).strip()} "
+        f"Почему важно: {str(it.get('why_ru', '')).strip()}" for it in items)
+
+
 def fintech_checks(doc: Document, cap: int = 25) -> str:
     data = load_yaml("checks/fintech.yaml") or {}
     areas = data.get("areas") or {}

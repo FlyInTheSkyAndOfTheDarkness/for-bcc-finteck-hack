@@ -15,7 +15,7 @@ from reqcheck.schemas import (CriticResult, CriticVerdict, FindingDraft, Scenari
 from tests.helpers_blocks import doc_from_md, load_input
 
 PROMPTS = ["review_requirement", "set_contradictions", "set_scenarios", "set_completeness",
-           "set_summary", "critic", "clarify", "apply_answers", "verdict"]
+           "set_checklist", "set_summary", "critic", "clarify", "apply_answers", "verdict"]
 
 MINI = """# Онлайн-депозит
 
@@ -78,6 +78,8 @@ def _ctx_for(name, doc, reqs):
         "set_scenarios": dict(acceptance="", rules=prompting.req_blocks(reqs[:2]), context=""),
         "set_completeness": dict(criteria="x", fintech_checks=prompting.fintech_checks(doc),
                                  outline=prompting.outline(doc, reqs), known_findings=""),
+        "set_checklist": dict(checklist=prompting.checklist_lines(prompting.checklist_items(doc)[:3]),
+                              outline=prompting.outline(doc, reqs), known_findings=""),
         "set_summary": dict(criteria="x", outline="", findings="", stats=prompting.stats(reqs, [])),
         "critic": dict(candidates=""),
         "clarify": dict(max_questions=15, findings="- D-001 | critical | x"),
@@ -101,7 +103,7 @@ def test_render_every_prompt(name, doc, reqs):
     assert doc.name in user
     assert "{" not in re.sub(r"\{\{|\}\}|\{\"|\{'", "", user.split("\n", 2)[1])  # плейсхолдеры подставлены
     # пустые значения → «нет»
-    if name in ("review_requirement", "set_contradictions", "set_completeness"):
+    if name in ("review_requirement", "set_contradictions", "set_completeness", "set_checklist"):
         assert "\nнет" in user
 
 
@@ -379,7 +381,7 @@ def test_full_pipeline_fake(tmp_path):
     data = run("docs/requirements.md", s, llm=llm)
     assert data.requirements and data.findings
     tags = llm.stats.by_tag
-    for t in ("review", "set.contradictions", "set.scenarios", "set.completeness", "critic",
+    for t in ("review", "set.contradictions", "set.scenarios", "set.completeness", "set.checklist", "critic",
               "set.summary", "clarify", "verdict"):
         assert tags.get(t), t
     srcs = {f.source for f in data.findings}
@@ -417,3 +419,35 @@ def test_missing_scenarios_reach_summary(doc, reqs):
     setreview._remember_missing(reqs, ["R-07: возврат — нет критерия приёмки."])
     s = setreview.summarize(doc, reqs, [], FakeLLM())
     assert any("R-07: возврат" in n for n in s.notes)
+
+
+def test_pre_dedupe_keeps_distinct_defects_of_compound_requirement():
+    whole = ("Месяц определяется по дате совершения покупки в Алматы. В расходы входят проведённые "
+             "покупки. Возврат уменьшает расходы месяца исходной покупки.")
+    a = Finding(rids=["R-07"], criterion=Criterion.unambiguous, severity=Severity.major,
+                title="Неоднозначно определена дата отнесения покупки к месяцу", quote=whole,
+                explanation="e", recommendation="r", source=FindingSource.llm_requirement, confidence=0.8)
+    b = a.model_copy(update={"title": "Не разграничены стадии авторизации и проведения покупки",
+                             "quote": "В расходы входят проведённые покупки."})
+    c = a.model_copy(update={"title": "Неоднозначно определена дата отнесения покупки к месяцу расчёта",
+                             "quote": "Месяц определяется по дате совершения покупки в Алматы."})
+    out = critic.pre_dedupe([a, b, c])
+    assert [f.title for f in out] == [a.title, b.title]     # b — другой дефект, c — тот же, что a
+
+
+def test_questions_put_critical_contradictions_first():
+    from reqcheck import clarify
+    from reqcheck.ingest import load_document
+    doc = load_document("docs/requirements.md")
+    mk = lambda fid, crit, sev: Finding(fid=fid, rids=["R-01"], criterion=crit, severity=sev, title=fid,
+                                        quote="q", explanation="e", recommendation="r",
+                                        source=FindingSource.llm_set, confidence=0.8)
+    fs = [mk("D-001", Criterion.correct, Severity.critical),
+          mk("D-002", Criterion.complete, Severity.major),
+          mk("D-003", Criterion.set_consistent, Severity.critical)]
+
+    def h(system, user, schema):
+        return {"questions": [{"fids": [f], "rids": ["R-01"], "question": f"Вопрос {f}?", "why": "w",
+                               "options": ["a", "b"]} for f in ("D-002", "D-001", "D-003")]}
+    qs = clarify.make_questions(doc, [], fs, FakeLLM({"clarify": h}))
+    assert [q.fids[0] for q in qs] == ["D-003", "D-001", "D-002"]

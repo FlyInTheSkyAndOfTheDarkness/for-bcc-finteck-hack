@@ -3,19 +3,22 @@
 Три независимых LLM-вызова идут параллельно:
   set.contradictions — группы-кандидаты из индекса терминов (engine/terms.py) + весь набор;
   set.scenarios      — прогон критериев приёмки против правил, маркеры → критерий/критичность;
-  set.completeness   — пропуски набора с предметным чек-листом (метка [FT-…] → source=fintech).
+  set.completeness   — пропуски набора с предметным чек-листом (метка [FT-…] → source=fintech);
+  set.checklist      — поштучный ответ по КАЖДОМУ применимому пункту чек-листов (fintech.yaml +
+                       requirements.yaml), пачками по CHECKLIST_CHUNK пунктов параллельно.
 summarize (set.summary) вызывается после critic и нумерации D-NNN.
 """
 from __future__ import annotations
 
 import logging
+import os
 import re
 import threading
 from typing import Optional, Sequence
 
 from reqcheck.engine import parallel
-from reqcheck.engine.prompting import (SET_CRITERIA, call, criteria_text, draft_to_finding,
-                                       fintech_checks, fintech_tag, finding_lines, known_lines,
+from reqcheck.engine.prompting import (SET_CRITERIA, call, checklist_items, checklist_lines,
+                                       criteria_text, draft_to_finding, fintech_checks, fintech_tag, finding_lines, known_lines,
                                        norm, outline, repair_quote, req_blocks, req_short, rid_map,
                                        scope_criteria, stats)
 from reqcheck.engine.terms import TermIndex, candidate_groups, render_groups
@@ -23,7 +26,8 @@ from reqcheck.grounding import find_quote
 from reqcheck.llm import LLMClient
 from reqcheck.models import (BlockKind, Criterion, Document, Finding, FindingSource, ReqKind,
                              Requirement, SetSummary, Severity)
-from reqcheck.schemas import FindingDrafts, ScenarioCheck, ScenarioChecks, SetSummaryDraft
+from reqcheck.schemas import (ChecklistCheck, ChecklistChecks, ChecklistStatus, FindingDraft,
+                              FindingDrafts, ScenarioCheck, ScenarioChecks, SetSummaryDraft)
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +35,7 @@ RULE_KINDS = {ReqKind.functional, ReqKind.api, ReqKind.data, ReqKind.nonfunction
 SMALL_SET = 24             # до стольких требований set.contradictions — один вызов со всеми
 GROUPS_PER_CALL = 6
 MAX_SHOWN = 28
+CHECKLIST_CHUNK = 12       # пунктов чек-листа в одном вызове set.checklist
 
 MARKERS = [  # (маркер, критерий, критичность, уверенность, заголовок)
     ("ПРОТИВОРЕЧИЕ:", Criterion.set_consistent, Severity.critical, 0.85,
@@ -320,6 +325,75 @@ def _completeness(doc: Document, reqs: Sequence[Requirement], llm: LLMClient,
     return res
 
 
+# ----------------------------------------------------------------- checklist ---
+_SEV_DOWN = {Severity.critical: Severity.major, Severity.major: Severity.minor, Severity.minor: Severity.minor}
+
+
+def checklist_chunks(items: Sequence[dict], size: int = CHECKLIST_CHUNK) -> list[list[dict]]:
+    """Пачки пунктов почти равного размера (последняя пачка не бывает крошечной)."""
+    if not items:
+        return []
+    n = max(1, -(-len(items) // size))
+    base, extra = divmod(len(items), n)
+    out, pos = [], 0
+    for i in range(n):
+        k = base + (1 if i < extra else 0)
+        out.append(list(items[pos:pos + k]))
+        pos += k
+    return out
+
+
+def checklist_finding(doc: Document, reqs: Sequence[Requirement], c: ChecklistCheck,
+                      item: dict) -> Optional[Finding]:
+    """partial/missing → Finding с меткой [id] в пояснении; прочие статусы → None."""
+    if c.status not in (ChecklistStatus.partial, ChecklistStatus.missing):
+        return None
+    if not (c.title or "").strip() or not (c.quote or "").strip():
+        return None
+    try:
+        crit = c.criterion or Criterion(item.get("criterion") or "set_complete")
+    except ValueError:
+        crit = Criterion.set_complete
+    try:
+        sev = c.severity or Severity(item.get("default_severity") or "major")
+    except ValueError:
+        sev = Severity.major
+    if c.severity is None and c.status == ChecklistStatus.partial:
+        sev = _SEV_DOWN[sev]
+    tag = f"[{item['id']}]"
+    expl = (c.explanation or "").strip()
+    if tag not in expl:
+        expl = (expl + " " + tag).strip()
+    d = FindingDraft(rids=c.rids, criterion=crit, severity=sev, title=c.title.strip(), quote=c.quote,
+                     explanation=expl, recommendation=(c.recommendation or "").strip(),
+                     confidence=c.confidence)
+    f = draft_to_finding(doc, reqs, unwrap_quote(d), source=FindingSource.llm_set, scope="set")
+    if item["id"].startswith("FT-"):
+        f.source = FindingSource.fintech
+    return f
+
+
+def _checklist_call(doc: Document, reqs: Sequence[Requirement], llm: LLMClient,
+                    prior: Sequence[Finding], items: list[dict]) -> list[Finding]:
+    out = call(llm, "set_checklist", ChecklistChecks, "set.checklist", doc_name=doc.name,
+               checklist=checklist_lines(items), outline=outline(doc, reqs),
+               requirements=req_blocks(reqs), known_findings=known_lines(prior))
+    by_id = {it["id"]: it for it in items}
+    res, seen = [], set()
+    for c in out.checks:
+        cid = (c.id or "").strip().strip("[]")
+        if cid not in by_id or cid in seen:
+            continue
+        seen.add(cid)
+        f = checklist_finding(doc, reqs, c, by_id[cid])
+        if f is not None:
+            res.append(f)
+    missing = [i for i in by_id if i not in seen]
+    if missing:
+        log.info("set.checklist: модель не ответила по пунктам %s", ", ".join(missing))
+    return res
+
+
 def review_set(doc: Document, reqs: list[Requirement], llm: LLMClient,
                prior: list[Finding]) -> tuple[list[Finding], SetSummary]:
     if not reqs:
@@ -330,6 +404,11 @@ def review_set(doc: Document, reqs: list[Requirement], llm: LLMClient,
     for i, (g, shown) in enumerate(cjobs, 1):
         jobs.append(lambda g=g, shown=shown: _contradictions_call(doc, reqs, llm, prior, g, shown))
         names.append(f"set.contradictions ({i}/{len(cjobs)})")
+    skip = {x.strip() for x in os.getenv("REQCHECK_SKIP", "").split(",")}
+    chunks = [] if "checklist" in skip else checklist_chunks(checklist_items(doc))
+    for i, items in enumerate(chunks, 1):
+        jobs.append(lambda items=items: _checklist_call(doc, reqs, llm, prior, items))
+        names.append(f"set.checklist ({i}/{len(chunks)})")
     results = parallel.run_all(jobs, max_workers=parallel.workers(4), label="set", default=None)
     found: list[Finding] = []
     notes = []

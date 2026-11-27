@@ -30,6 +30,9 @@ BATCH = 15
 FULL_REQS = 60
 PROTECT_CONF = 0.9
 MIN_KEEP_CONF = 0.4
+TERM_WORDS = 3        # цитата-термин («быстро») — дубль по одному пересечению цитат
+SPAN_RATIO = 0.5      # короче половины длинной цитаты — фрагмент составного пункта
+TITLE_SIM = 70        # тогда дубль, только если заголовки совпадают по сути (token_set_ratio)
 
 FAMILY = {
     Criterion.unambiguous: "clarity", Criterion.verifiable: "clarity",
@@ -74,7 +77,14 @@ def same_problem(a: Finding, b: Finding) -> bool:
         return False
     if not ra and not rb and a.scope != b.scope:
         return False
-    return quotes_overlap(a.quote, b.quote)
+    if not quotes_overlap(a.quote, b.quote):
+        return False
+    # Составной пункт («Месяц определяется… В расходы входят… Возврат…») несёт несколько разных
+    # дефектов: цитата-предложение внутри длинной цитаты — дубль, только если совпадает и суть.
+    qa, qb = sorted((norm(a.quote), norm(b.quote)), key=len)
+    if len(qa.split()) <= TERM_WORDS or len(qa) >= SPAN_RATIO * len(qb):
+        return True
+    return fuzz.token_set_ratio(_title_key(a.title), _title_key(b.title)) >= TITLE_SIM
 
 
 def _merit(f: Finding) -> float:
