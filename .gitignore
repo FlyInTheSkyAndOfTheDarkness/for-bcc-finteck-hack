@@ -67,6 +67,9 @@ reports/*
 !reports/report_pdf.md
 !reports/report_pdf.html
 !reports/report_pdf.json
+!reports/report_gemini.md
+!reports/report_gemini.html
+!reports/report_gemini.json
 !reports/ablation/
 reports/ablation/*
 !reports/ablation/*.json

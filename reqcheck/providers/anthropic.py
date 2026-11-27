@@ -4,7 +4,7 @@
 - Ответ строго по JSON-схеме: структурированный вывод (`output_format=<pydantic-класс>`); SDK сам
   приводит схему к поддерживаемому виду и проверяет ответ.
 - Размышления у моделей Claude 5 всегда адаптивные; глубину задаёт `LLM_EFFORT`
-  (low | medium | high | xhigh | max, по умолчанию high). Effort входит в ключ кэша.
+  (low | medium | high | xhigh | max, по умолчанию medium — как у самой модели). Effort входит в ключ кэша.
 - temperature не передаётся: у текущих моделей Claude параметры сэмплирования отключены
   (воспроизводимость даёт дисковый кэш).
 - Стриминг (`get_final_message`) — длинные ответы с размышлениями не упираются в HTTP-таймаут.
@@ -34,7 +34,7 @@ class AnthropicLLM(BaseLLM):
             raise LLMError("Не задан ANTHROPIC_API_KEY (добавьте его в .env).")
         settings.model = settings.model or DEFAULT_MODEL
         super().__init__(settings)
-        effort = (os.getenv("LLM_EFFORT") or "high").strip().lower()
+        effort = (os.getenv("LLM_EFFORT") or "medium").strip().lower()
         if effort not in EFFORTS:
             raise LLMError(f"LLM_EFFORT={effort!r}: допустимо {', '.join(EFFORTS)}")
         self.thinking = effort            # входит в ключ кэша (см. BaseLLM._generate_json)

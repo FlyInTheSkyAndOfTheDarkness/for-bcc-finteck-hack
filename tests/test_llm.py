@@ -232,7 +232,7 @@ def test_anthropic_request_shape(tmp_path, monkeypatch):
     pytest.importorskip("anthropic")
     from types import SimpleNamespace
     from reqcheck.providers.anthropic import AnthropicLLM
-    monkeypatch.setenv("LLM_EFFORT", "high")
+    monkeypatch.delenv("LLM_EFFORT", raising=False)
     s = mk(tmp_path, provider="anthropic", model="", api_key="test-key")
     g = AnthropicLLM(s)
     assert g.model == "claude-opus-5-5"
@@ -257,7 +257,7 @@ def test_anthropic_request_shape(tmp_path, monkeypatch):
     out = g.generate_json("s", "u", SegResult, tag="t")
     assert out.requirements == []
     assert seen["output_format"] is SegResult and seen["thinking"] == {"type": "adaptive"}
-    assert seen["output_config"] == {"effort": "high"} and "temperature" not in seen
+    assert seen["output_config"] == {"effort": "medium"} and "temperature" not in seen
     assert seen["fallbacks"] == "default" and seen["model"] == "claude-opus-5-5"
 
 
