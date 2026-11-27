@@ -1,8 +1,8 @@
 {
   "summary": {
     "n_gold": 51,
-    "n_findings": 20,
-    "recall": 0.275,
+    "n_findings": 21,
+    "recall": 0.294,
     "must_find": {
       "n": 20,
       "found": 11,
@@ -21,21 +21,21 @@
       },
       "minor": {
         "n": 21,
-        "found": 5,
-        "recall": 0.238
+        "found": 6,
+        "recall": 0.286
       }
     },
-    "precision": 0.85,
-    "f1": 0.416,
-    "matched_findings": 17,
+    "precision": 0.857,
+    "f1": 0.438,
+    "matched_findings": 18,
     "unmatched_findings": 3,
     "duplicates": 3,
-    "severity_agreement": 0.714,
+    "severity_agreement": 0.733,
     "severity_over": 1,
     "severity_under": 3,
     "severity_confusion": {
       "minor": {
-        "minor": 4,
+        "minor": 5,
         "major": 1
       },
       "major": {
@@ -46,7 +46,7 @@
         "major": 1
       }
     },
-    "criterion_exact": 0.571,
+    "criterion_exact": 0.6,
     "criterion_compatible": 1.0,
     "by_criterion": {
       "complete": {
@@ -76,8 +76,8 @@
       },
       "singular": {
         "n": 1,
-        "found": 0,
-        "recall": 0.0
+        "found": 1,
+        "recall": 1.0
       },
       "traceable": {
         "n": 2,
@@ -118,8 +118,8 @@
       },
       "scope": {
         "n": 1,
-        "found": 0,
-        "recall": 0.0
+        "found": 1,
+        "recall": 1.0
       }
     },
     "finding_criteria": {
@@ -131,6 +131,7 @@
       "verifiable": 1,
       "unambiguous": 1,
       "traceable": 1,
+      "singular": 1,
       "modifiable": 1
     }
   },
@@ -264,7 +265,17 @@
         "severity": "minor",
         "criterion": "singular",
         "must_find": false,
-        "matched_by": []
+        "matched_by": [
+          {
+            "finding": "D-019",
+            "title": "Составные требования: несколько утверждений в одном пункте",
+            "criterion": "singular",
+            "severity": "minor",
+            "evidence": 100.0,
+            "score": 86.93,
+            "via": "quote"
+          }
+        ]
       },
       {
         "id": "G-16",
@@ -374,7 +385,7 @@
         "must_find": true,
         "matched_by": [
           {
-            "finding": "D-020",
+            "finding": "D-021",
             "title": "Не указаны версия и дата документа",
             "criterion": "modifiable",
             "severity": "minor",
@@ -383,7 +394,7 @@
             "via": "quote"
           },
           {
-            "finding": "D-019",
+            "finding": "D-020",
             "title": "Не выбраны значения «Да / Нет» в таблице «Ревью требований»",
             "criterion": "conforming",
             "severity": "minor",
@@ -742,12 +753,12 @@
   "meta": {
     "report": "reports/ablation/linters_only.json",
     "doc_name": "Уведомление о расходах по карте",
-    "provider": "fake",
-    "model": "fake-llm",
-    "agent_version": "0.1.0 (e3c26f3)",
-    "prompt_version": "8c3fac0f21",
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "agent_version": "1.1.0 (v1.1)",
+    "prompt_version": "2507d2ac63",
     "requirements": 48,
-    "gold": "C:\\Users\\Lenovo\\Desktop\\code\\for bcc hack\\eval\\gold.yaml",
+    "gold": "eval/gold.yaml",
     "mode": "lexical (порог 80)"
   }
 }
